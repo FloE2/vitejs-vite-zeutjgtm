@@ -3,8 +3,9 @@ import { Calendar, Users, UserCheck, Trophy, Settings, Plus, BarChart3, Edit, Sa
 import { createClient } from '@supabase/supabase-js';
 
 // Configuration Supabase
-const supabaseUrl = 'https://ohwgrmbntunspkchoshf.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9od2dybWJudHVuc3BrY2hvc2hmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4Nzk5MzMsImV4cCI6MjA2OTQ1NTkzM30.QtoUH9K8KfFz4osDtmWcO5dNAeMZxIU8sZDo0bnH7ys';
+const supabaseUrl = 'https://ohwqrmbntunspkcoshf.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9od3FybWJudHVuc3BrY29zaGYiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcyMjQ0OTcyNCwiZXhwIjoyMDM4MDI1NzI0fQ.UzExCh-3ggLd6D-2vw6IH8z8m8nVEOqhfK8UwBgirZs';
+
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const BasketballApp = () => {
@@ -14,11 +15,11 @@ const BasketballApp = () => {
   const [selectedChampionship, setSelectedChampionship] = useState('all');
   const [selectedDate, setSelectedDate] = useState('current');
 
-  // États pour les données Supabase
+  // États pour les données
   const [students, setStudents] = useState([]);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
 
   // États pour l'édition
   const [selectedMatch, setSelectedMatch] = useState(null);
@@ -47,108 +48,80 @@ const BasketballApp = () => {
     { key: 'stage', label: 'En Stage', color: 'bg-teal-600', textColor: 'text-teal-600', code: 'S' },
   ];
 
-  // Services Supabase intégrés
-  const loadStudents = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log('🔍 Chargement des étudiants depuis Supabase...');
-      
-      const { data, error: supabaseError } = await supabase
-        .from('students')
-        .select('*')
-        .order('last_name', { ascending: true });
-      
-      if (supabaseError) {
-        console.error('❌ Erreur Supabase:', supabaseError);
-        throw supabaseError;
-      }
-      
-      console.log('✅ Données Supabase chargées:', data);
-      
-      // Transformer les données
-      const transformedData = data.map(student => ({
-        id: student.id,
-        firstName: student.first_name,
-        lastName: student.last_name,
-        birthDate: student.birth_date,
-        licenseNumber: student.license_number,
-        position: student.position,
-        team: student.team,
-        isCaptain: student.is_captain,
-        lastAttendance: student.last_attendance || 'present'
-      }));
-      
-      setStudents(transformedData);
-      console.log(`✅ ${transformedData.length} étudiants chargés depuis Supabase`);
-    } catch (err) {
-      setError(err.message);
-      console.error('❌ Erreur lors du chargement:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadMatches = async () => {
-    try {
-      console.log('🔍 Chargement des matchs depuis Supabase...');
-      
-      const { data, error: supabaseError } = await supabase
-        .from('matches')
-        .select(`
-          *,
-          match_selections (
-            student_id
-          )
-        `)
-        .order('date', { ascending: true });
-      
-      if (supabaseError) {
-        console.error('❌ Erreur matchs Supabase:', supabaseError);
-        return;
-      }
-      
-      const transformedMatches = data.map(match => ({
-        id: match.id,
-        date: match.date,
-        time: match.time,
-        opponent: match.opponent,
-        championship: match.championship,
-        championshipFull: `Championnat ${match.championship}`,
-        team: match.team,
-        status: match.status,
-        tenues: null,
-        arbitrage: null,
-        tableMarque: null,
-        selectedPlayers: match.match_selections?.map(sel => sel.student_id) || []
-      }));
-      
-      setMatches(transformedMatches);
-      console.log(`✅ ${transformedMatches.length} matchs chargés depuis Supabase`);
-    } catch (err) {
-      console.error('❌ Erreur chargement matchs:', err);
-    }
-  };
-
-  // Chargement initial
+  // Chargement des données depuis Supabase
   useEffect(() => {
-    console.log('🚀 Initialisation de l\'application avec Supabase');
-    loadStudents();
-    loadMatches();
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setConnectionStatus('connecting');
+
+        // Charger les étudiants
+        const { data: studentsData, error: studentsError } = await supabase
+          .from('students')
+          .select('*')
+          .order('last_name', { ascending: true });
+
+        if (studentsError) throw studentsError;
+
+        // Transformer les données
+        const transformedStudents = studentsData.map(student => ({
+          id: student.id,
+          firstName: student.first_name,
+          lastName: student.last_name,
+          birthDate: student.birth_date,
+          licenseNumber: student.license_number,
+          position: student.position,
+          team: student.team,
+          isCaptain: student.is_captain,
+          lastAttendance: student.last_attendance || 'present'
+        }));
+
+        setStudents(transformedStudents);
+
+        // Charger les matchs
+        const { data: matchesData, error: matchesError } = await supabase
+          .from('matches')
+          .select('*')
+          .order('date', { ascending: true });
+
+        if (matchesError) throw matchesError;
+
+        // Transformer les matchs
+        const transformedMatches = matchesData.map(match => ({
+          id: match.id,
+          date: match.date,
+          time: match.time,
+          opponent: match.opponent,
+          championship: match.championship,
+          championshipFull: `Championnat ${match.championship}`,
+          team: match.team,
+          status: match.status,
+          tenues: null,
+          arbitrage: null,
+          tableMarque: null,
+          selectedPlayers: [] // À implémenter plus tard avec match_selections
+        }));
+
+        setMatches(transformedMatches);
+        setConnectionStatus('connected');
+
+      } catch (error) {
+        console.error('Erreur lors du chargement:', error);
+        setConnectionStatus('error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, []);
 
-  // Fonctions CRUD avec Supabase
-  const handleAddStudent = async () => {
-    if (!newPlayer.firstName || !newPlayer.lastName || !newPlayer.licenseNumber) {
-      alert('⚠️ Veuillez remplir tous les champs obligatoires');
-      return;
-    }
+  // Fonctions CRUD pour les étudiants
+  const addStudent = async () => {
+    if (!newPlayer.firstName || !newPlayer.lastName || !newPlayer.licenseNumber) return;
 
     try {
-      console.log('💾 Ajout d\'un nouveau joueur dans Supabase:', newPlayer);
-      
-      const { data, error: supabaseError } = await supabase
+      const { data, error } = await supabase
         .from('students')
         .insert([{
           first_name: newPlayer.firstName,
@@ -162,14 +135,8 @@ const BasketballApp = () => {
         }])
         .select();
 
-      if (supabaseError) {
-        console.error('❌ Erreur ajout Supabase:', supabaseError);
-        throw supabaseError;
-      }
+      if (error) throw error;
 
-      console.log('✅ Joueur ajouté dans Supabase:', data[0]);
-
-      // Ajouter à l'état local
       const newStudentTransformed = {
         id: data[0].id,
         firstName: data[0].first_name,
@@ -179,12 +146,10 @@ const BasketballApp = () => {
         position: data[0].position,
         team: data[0].team,
         isCaptain: data[0].is_captain,
-        lastAttendance: data[0].last_attendance
+        lastAttendance: data[0].last_attendance || 'present'
       };
 
-      setStudents(prev => [...prev, newStudentTransformed]);
-      
-      // Reset du formulaire
+      setStudents([...students, newStudentTransformed]);
       setNewPlayer({
         firstName: '',
         lastName: '',
@@ -195,15 +160,12 @@ const BasketballApp = () => {
         isCaptain: false
       });
       setShowAddPlayer(false);
-      
-      alert('🎉 Joueur ajouté avec succès dans Supabase ! Il restera après un refresh.');
-    } catch (err) {
-      console.error('❌ Erreur ajout:', err);
-      alert('❌ Erreur lors de l\'ajout: ' + err.message);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout:', error);
     }
   };
 
-  const handleUpdateStudent = async (updatedPlayer) => {
+  const updateStudent = async (updatedPlayer) => {
     const originalPlayer = students.find(s => s.id === updatedPlayer.id);
     
     if (originalPlayer.team !== updatedPlayer.team) {
@@ -212,16 +174,14 @@ const BasketballApp = () => {
     
     if (updatedPlayer.isCaptain) {
       const currentCaptains = students.filter(s => s.team === updatedPlayer.team && s.isCaptain && s.id !== updatedPlayer.id);
-      if (currentCaptains.length >= 1) {
-        alert('Il ne peut y avoir qu\'1 capitaine par équipe');
+      if (currentCaptains.length >= 2) {
+        alert('Il ne peut y avoir que 2 capitaines maximum par équipe');
         return;
       }
     }
 
     try {
-      console.log('💾 Mise à jour du joueur dans Supabase:', updatedPlayer);
-      
-      const { data, error: supabaseError } = await supabase
+      const { data, error } = await supabase
         .from('students')
         .update({
           first_name: updatedPlayer.firstName,
@@ -236,49 +196,78 @@ const BasketballApp = () => {
         .eq('id', updatedPlayer.id)
         .select();
 
-      if (supabaseError) throw supabaseError;
+      if (error) throw error;
 
-      setStudents(prev => prev.map(s => s.id === updatedPlayer.id ? updatedPlayer : s));
+      setStudents(students.map(student => 
+        student.id === updatedPlayer.id ? updatedPlayer : student
+      ));
       setEditingPlayer(null);
-      
-      console.log('✅ Joueur modifié avec succès');
-      alert('🎉 Joueur modifié avec succès dans Supabase !');
-    } catch (err) {
-      console.error('❌ Erreur modification:', err);
-      alert('❌ Erreur lors de la modification: ' + err.message);
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
     }
   };
 
-  const handleDeleteStudent = async (playerId) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce joueur de Supabase ?')) return;
+  const deleteStudent = async (playerId) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce joueur ?')) return;
 
     try {
-      console.log('🗑️ Suppression du joueur de Supabase:', playerId);
-      
-      const { error: supabaseError } = await supabase
+      const { error } = await supabase
         .from('students')
         .delete()
         .eq('id', playerId);
 
-      if (supabaseError) throw supabaseError;
+      if (error) throw error;
 
-      setStudents(prev => prev.filter(s => s.id !== playerId));
-      
-      console.log('✅ Joueur supprimé avec succès');
-      alert('🎉 Joueur supprimé avec succès de Supabase !');
-    } catch (err) {
-      console.error('❌ Erreur suppression:', err);
-      alert('❌ Erreur lors de la suppression: ' + err.message);
+      setStudents(students.filter(student => student.id !== playerId));
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
     }
   };
 
   const changePlayerTeam = async (playerId, newTeam) => {
     const student = students.find(s => s.id === playerId);
-    await handleUpdateStudent({
+    await updateStudent({
       ...student,
       team: newTeam,
       isCaptain: false
     });
+  };
+
+  const updateAttendance = async (studentId, newAttendance) => {
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({ last_attendance: newAttendance })
+        .eq('id', studentId);
+
+      if (error) throw error;
+
+      setStudents(students.map(s => 
+        s.id === studentId ? { ...s, lastAttendance: newAttendance } : s
+      ));
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des présences:', error);
+    }
+  };
+
+  // Fonctions pour les matchs
+  const saveMatchSelection = async (matchId) => {
+    try {
+      setMatches(matches.map(match => 
+        match.id === matchId ? { ...match, selectedPlayers } : match
+      ));
+      setSelectedMatch(null);
+      setSelectedPlayers([]);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+    }
+  };
+
+  const assignResponsibility = (matchId, role, playerId) => {
+    const playerName = playerId ? students.find(s => s.id === parseInt(playerId))?.firstName + ' ' + students.find(s => s.id === parseInt(playerId))?.lastName : null;
+    setMatches(matches.map(match => 
+      match.id === matchId ? { ...match, [role]: playerName } : match
+    ));
   };
 
   const togglePlayerSelection = (playerId) => {
@@ -289,89 +278,25 @@ const BasketballApp = () => {
     }
   };
 
-  const saveMatchSelection = async (matchId) => {
-    try {
-      // Pour l'instant, juste mettre à jour l'état local
-      // L'intégration complète des matchs sera pour plus tard
-      setMatches(matches.map(match => 
-        match.id === matchId ? { ...match, selectedPlayers } : match
-      ));
-      setSelectedMatch(null);
-      setSelectedPlayers([]);
-      alert('Sélection sauvegardée !');
-    } catch (error) {
-      console.error('Erreur sauvegarde match:', error);
-    }
+  const replacePlayer = (matchId, playerIdToRemove) => {
+    setMatches(matches.map(match => 
+      match.id === matchId 
+        ? { ...match, selectedPlayers: match.selectedPlayers.filter(id => id !== playerIdToRemove) }
+        : match
+    ));
   };
 
-  // États de chargement et d'erreur
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-600 mx-auto mb-4"></div>
-          <p className="text-slate-600 font-medium">🔗 Connexion à Supabase...</p>
-          <p className="text-slate-500 text-sm mt-2">Chargement des données depuis la base</p>
-        </div>
-      </div>
-    );
-  }
+  const addReplacementPlayer = (matchId, newPlayerId) => {
+    setMatches(matches.map(match => 
+      match.id === matchId && match.selectedPlayers.length < 10
+        ? { ...match, selectedPlayers: [...match.selectedPlayers, newPlayerId] }
+        : match
+    ));
+  };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="text-red-600 mb-4">
-            <p className="text-xl font-bold">❌ Erreur de connexion Supabase</p>
-            <div className="mt-3 p-3 bg-red-50 rounded text-sm text-left">
-              <p className="font-medium">Détails :</p>
-              <p>{error}</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => {
-              setError(null);
-              loadStudents();
-            }}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-          >
-            🔄 Réessayer la connexion
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // Rendu des différentes vues
   const renderDashboard = () => (
     <div className="space-y-6">
-      {/* Indicateur de connexion Supabase */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <h3 className="text-lg font-semibold text-green-800">🎉 Connecté à Supabase !</h3>
-          </div>
-          <div className="text-sm text-green-600">
-            Base de données en temps réel active
-          </div>
-        </div>
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div className="text-center p-3 bg-green-100 rounded-lg">
-            <div className="text-2xl font-bold text-green-700">{students.length}</div>
-            <div className="text-green-600">Joueurs en base</div>
-          </div>
-          <div className="text-center p-3 bg-blue-100 rounded-lg">
-            <div className="text-2xl font-bold text-blue-700">{students.filter(s => s.team === '2').length}</div>
-            <div className="text-blue-600">Équipe 2</div>
-          </div>
-          <div className="text-center p-3 bg-purple-100 rounded-lg">
-            <div className="text-2xl font-bold text-purple-700">{students.filter(s => s.team === '3').length}</div>
-            <div className="text-purple-600">Équipe 3</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats générales */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white/80 backdrop-blur-sm p-4 rounded-lg shadow-sm border border-slate-200">
           <h3 className="font-semibold text-slate-700">Prochain entraînement</h3>
@@ -390,289 +315,649 @@ const BasketballApp = () => {
           <p className="text-slate-600">{students.filter(s => s.team === '2').length} / {students.filter(s => s.team === '3').length}</p>
         </div>
       </div>
-    </div>
-  );
-
-  const renderTeams = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold text-slate-800">Gestion des équipes</h2>
-        {userType === 'coach' && (
-          <button
-            onClick={() => setShowAddPlayer(true)}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
-          >
-            <Plus size={16} />
-            Ajouter un joueur
-          </button>
-        )}
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Équipe 2 */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm border-2 border-green-300">
-          <div className="bg-green-600 text-white p-4 rounded-t-lg">
-            <h3 className="text-xl font-bold">Équipe 2</h3>
-            <div className="text-sm opacity-90">
-              Championnat LDV2 • {students.filter(s => s.team === '2').length} joueurs
-            </div>
-          </div>
-          <div className="p-4">
-            <div className="space-y-2">
-              {students.filter(s => s.team === '2').map(student => (
-                <div key={student.id} className="flex justify-between items-center p-3 bg-green-50/80 rounded-lg border border-green-200">
-                  <div>
-                    <div className="font-medium text-slate-800">
-                      {student.firstName} {student.lastName}
-                      {student.isCaptain && <span className="text-yellow-600 ml-2">👑</span>}
-                    </div>
-                    <div className="text-sm text-slate-600">{student.position} • {student.licenseNumber}</div>
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border border-slate-200">
+          <h3 className="text-lg font-semibold mb-4 text-slate-800">Prochains matchs</h3>
+          <div className="space-y-3">
+            {matches.filter(m => m.status === 'upcoming').slice(0, 3).map(match => (
+              <div key={match.id} className={`flex justify-between items-center p-3 border-2 rounded-lg ${
+                match.championship === 'LDV2' 
+                  ? 'border-green-300 bg-green-50/80' 
+                  : 'border-blue-300 bg-blue-50/80'
+              }`}>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-medium text-slate-800">{match.opponent}</p>
+                    <span className={`text-xs font-bold px-2 py-1 rounded ${
+                      match.championship === 'LDV2' 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-blue-600 text-white'
+                    }`}>
+                      {match.championship}
+                    </span>
                   </div>
-                  {userType === 'coach' && (
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => setEditingPlayer(student)}
-                        className="text-blue-600 hover:text-blue-800 p-1"
-                        title="Modifier"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => changePlayerTeam(student.id, '3')}
-                        className="text-indigo-600 hover:text-indigo-800 p-1 text-xs font-bold"
-                        title="Transférer vers Équipe 3"
-                      >
-                        →3
-                      </button>
-                      <button
-                        onClick={() => handleDeleteStudent(student.id)}
-                        className="text-red-600 hover:text-red-800 p-1"
-                        title="Supprimer"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  )}
+                  <p className="text-sm text-slate-600">{match.date} à {match.time}</p>
+                  <p className="text-xs text-blue-600">{match.selectedPlayers.length}/10 joueurs sélectionnés</p>
                 </div>
-              ))}
-            </div>
+                <button 
+                  onClick={() => setActiveView('matches')}
+                  className="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                >
+                  Gérer
+                </button>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Équipe 3 */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm border-2 border-blue-300">
-          <div className="bg-blue-600 text-white p-4 rounded-t-lg">
-            <h3 className="text-xl font-bold">Équipe 3</h3>
-            <div className="text-sm opacity-90">
-              Championnat LDV3 • {students.filter(s => s.team === '3').length} joueurs
-            </div>
-          </div>
-          <div className="p-4">
-            <div className="space-y-2">
-              {students.filter(s => s.team === '3').map(student => (
-                <div key={student.id} className="flex justify-between items-center p-3 bg-blue-50/80 rounded-lg border border-blue-200">
-                  <div>
-                    <div className="font-medium text-slate-800">
-                      {student.firstName} {student.lastName}
-                      {student.isCaptain && <span className="text-yellow-600 ml-2">👑</span>}
-                    </div>
-                    <div className="text-sm text-slate-600">{student.position} • {student.licenseNumber}</div>
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border border-slate-200">
+          <h3 className="text-lg font-semibold mb-4 text-slate-800">Composition des équipes</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-medium text-green-700 mb-2">Équipe 2 ({students.filter(s => s.team === '2').length})</h4>
+              <div className="space-y-1">
+                {students.filter(s => s.team === '2').slice(0, 5).map(student => (
+                  <div key={student.id} className="flex justify-between items-center text-sm">
+                    <span className="text-slate-700">{student.firstName} {student.lastName}</span>
+                    {student.isCaptain && <span className="text-yellow-600">👑</span>}
                   </div>
-                  {userType === 'coach' && (
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => setEditingPlayer(student)}
-                        className="text-blue-600 hover:text-blue-800 p-1"
-                        title="Modifier"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => changePlayerTeam(student.id, '2')}
-                        className="text-green-600 hover:text-green-800 p-1 text-xs font-bold"
-                        title="Transférer vers Équipe 2"
-                      >
-                        →2
-                      </button>
-                      <button
-                        onClick={() => handleDeleteStudent(student.id)}
-                        className="text-red-600 hover:text-red-800 p-1"
-                        title="Supprimer"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))}
+                {students.filter(s => s.team === '2').length > 5 && (
+                  <p className="text-xs text-slate-500">+ {students.filter(s => s.team === '2').length - 5} autres...</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium text-blue-700 mb-2">Équipe 3 ({students.filter(s => s.team === '3').length})</h4>
+              <div className="space-y-1">
+                {students.filter(s => s.team === '3').slice(0, 5).map(student => (
+                  <div key={student.id} className="flex justify-between items-center text-sm">
+                    <span className="text-slate-700">{student.firstName} {student.lastName}</span>
+                    {student.isCaptain && <span className="text-yellow-600">👑</span>}
+                  </div>
+                ))}
+                {students.filter(s => s.team === '3').length > 5 && (
+                  <p className="text-xs text-slate-500">+ {students.filter(s => s.team === '3').length - 5} autres...</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Modal d'ajout de joueur */}
-      {showAddPlayer && userType === 'coach' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold mb-4">➕ Ajouter un nouveau joueur dans Supabase</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  placeholder="Prénom *"
-                  value={newPlayer.firstName}
-                  onChange={(e) => setNewPlayer({...newPlayer, firstName: e.target.value})}
-                  className="border border-slate-300 rounded px-3 py-2"
-                />
-                <input
-                  type="text"
-                  placeholder="Nom *"
-                  value={newPlayer.lastName}
-                  onChange={(e) => setNewPlayer({...newPlayer, lastName: e.target.value})}
-                  className="border border-slate-300 rounded px-3 py-2"
-                />
-              </div>
-              <input
-                type="date"
-                value={newPlayer.birthDate}
-                onChange={(e) => setNewPlayer({...newPlayer, birthDate: e.target.value})}
-                className="w-full border border-slate-300 rounded px-3 py-2"
-              />
-              <input
-                type="text"
-                placeholder="Numéro de licence * (ex: LDV20101)"
-                value={newPlayer.licenseNumber}
-                onChange={(e) => setNewPlayer({...newPlayer, licenseNumber: e.target.value})}
-                className="w-full border border-slate-300 rounded px-3 py-2"
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <select
-                  value={newPlayer.position}
-                  onChange={(e) => setNewPlayer({...newPlayer, position: e.target.value})}
-                  className="border border-slate-300 rounded px-3 py-2"
-                >
-                  {positions.map(pos => (
-                    <option key={pos} value={pos}>{pos}</option>
-                  ))}
-                </select>
-                <select
-                  value={newPlayer.team}
-                  onChange={(e) => setNewPlayer({...newPlayer, team: e.target.value})}
-                  className="border border-slate-300 rounded px-3 py-2"
-                >
-                  <option value="2">Équipe 2</option>
-                  <option value="3">Équipe 3</option>
-                </select>
-              </div>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={newPlayer.isCaptain}
-                  onChange={(e) => setNewPlayer({...newPlayer, isCaptain: e.target.checked})}
-                />
-                <span className="text-sm">👑 Capitaine de l'équipe</span>
-              </label>
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={handleAddStudent}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors flex items-center gap-2"
-              >
-                💾 Sauvegarder dans Supabase
-              </button>
-              <button
-                onClick={() => setShowAddPlayer(false)}
-                className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal d'édition */}
-      {editingPlayer && userType === 'coach' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold mb-4">✏️ Modifier le joueur</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  placeholder="Prénom"
-                  value={editingPlayer.firstName}
-                  onChange={(e) => setEditingPlayer({...editingPlayer, firstName: e.target.value})}
-                  className="border border-slate-300 rounded px-3 py-2"
-                />
-                <input
-                  type="text"
-                  placeholder="Nom"
-                  value={editingPlayer.lastName}
-                  onChange={(e) => setEditingPlayer({...editingPlayer, lastName: e.target.value})}
-                  className="border border-slate-300 rounded px-3 py-2"
-                />
-              </div>
-              <input
-                type="date"
-                value={editingPlayer.birthDate}
-                onChange={(e) => setEditingPlayer({...editingPlayer, birthDate: e.target.value})}
-                className="w-full border border-slate-300 rounded px-3 py-2"
-              />
-              <input
-                type="text"
-                placeholder="Numéro de licence"
-                value={editingPlayer.licenseNumber}
-                onChange={(e) => setEditingPlayer({...editingPlayer, licenseNumber: e.target.value})}
-                className="w-full border border-slate-300 rounded px-3 py-2"
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <select
-                  value={editingPlayer.position}
-                  onChange={(e) => setEditingPlayer({...editingPlayer, position: e.target.value})}
-                  className="border border-slate-300 rounded px-3 py-2"
-                >
-                  {positions.map(pos => (
-                    <option key={pos} value={pos}>{pos}</option>
-                  ))}
-                </select>
-                <select
-                  value={editingPlayer.team}
-                  onChange={(e) => setEditingPlayer({...editingPlayer, team: e.target.value})}
-                  className="border border-slate-300 rounded px-3 py-2"
-                >
-                  <option value="2">Équipe 2</option>
-                  <option value="3">Équipe 3</option>
-                </select>
-              </div>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={editingPlayer.isCaptain}
-                  onChange={(e) => setEditingPlayer({...editingPlayer, isCaptain: e.target.checked})}
-                />
-                <span className="text-sm">👑 Capitaine de l'équipe</span>
-              </label>
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => handleUpdateStudent(editingPlayer)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors"
-              >
-                💾 Sauvegarder modifications
-              </button>
-              <button
-                onClick={() => setEditingPlayer(null)}
-                className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
+
+  const renderAttendance = () => {
+    const presentCount = students.filter(s => s.lastAttendance === 'present').length;
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-semibold text-slate-800">Gestion des présences</h2>
+          <div className="flex gap-2">
+            <select 
+              value={selectedTeam} 
+              onChange={(e) => setSelectedTeam(e.target.value)}
+              className="border border-slate-300 rounded px-3 py-1 bg-white/80 backdrop-blur-sm"
+            >
+              <option value="all">Toutes les équipes</option>
+              <option value="2">Équipe 2</option>
+              <option value="3">Équipe 3</option>
+            </select>
+            <button 
+              onClick={() => setActiveView('stats')}
+              className="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1 transition-colors"
+            >
+              <BarChart3 size={14} />
+              Stats
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-lg font-semibold text-slate-800">📋 Liste d'appel - {new Date().toLocaleDateString('fr-FR')}</h3>
+            <div className="text-sm text-slate-600">
+              {presentCount}/{students.filter(s => selectedTeam === 'all' || s.team === selectedTeam).length} présents
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+            {students
+              .filter(student => selectedTeam === 'all' || student.team === selectedTeam)
+              .map(student => (
+              <div key={student.id} className="flex items-center justify-between p-2 border border-slate-200 rounded bg-slate-50/50">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className="text-xs font-medium text-slate-500 w-6 flex-shrink-0">
+                    #{student.id}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-slate-800 text-sm truncate">
+                      {student.firstName} {student.lastName}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Eq.{student.team}{student.isCaptain && ' 👑'}
+                    </div>
+                  </div>
+                </div>
+                
+                {userType === 'coach' ? (
+                  <select
+                    value={student.lastAttendance}
+                    onChange={(e) => updateAttendance(student.id, e.target.value)}
+                    className={`border rounded px-1 py-1 font-bold text-white text-xs w-12 flex-shrink-0 ${
+                      attendanceStatuses.find(s => s.key === student.lastAttendance)?.color || 'bg-gray-400'
+                    }`}
+                  >
+                    {attendanceStatuses.map(status => (
+                      <option key={status.key} value={status.key} className="text-black">
+                        {status.code}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className={`px-2 py-1 rounded font-bold text-white text-xs flex-shrink-0 ${
+                    attendanceStatuses.find(s => s.key === student.lastAttendance)?.color || 'bg-gray-400'
+                  }`}>
+                    {attendanceStatuses.find(s => s.key === student.lastAttendance)?.code}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-3 border-t border-slate-200">
+            <div className="grid grid-cols-6 gap-3">
+              {attendanceStatuses.map(status => {
+                const count = students.filter(s => s.lastAttendance === status.key && (selectedTeam === 'all' || s.team === selectedTeam)).length;
+                return (
+                  <div key={status.key} className="text-center">
+                    <div className={`w-8 h-8 rounded-full ${status.color} flex items-center justify-center text-white text-xs font-bold mx-auto mb-1`}>
+                      {count}
+                    </div>
+                    <p className="text-xs font-medium text-slate-700">{status.code}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderMatches = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-semibold text-slate-800">Gestion des matchs</h2>
+          <div className="flex gap-2 items-center">
+            <select 
+              value={selectedChampionship} 
+              onChange={(e) => setSelectedChampionship(e.target.value)}
+              className="border border-slate-300 rounded px-3 py-1 bg-white/80 backdrop-blur-sm"
+            >
+              <option value="all">Tous les championnats</option>
+              <option value="LDV2">Championnat LDV2</option>
+              <option value="LDV3">Championnat LDV3</option>
+            </select>
+            {userType === 'coach' && (
+              <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors">
+                <Plus size={16} />
+                Nouveau match
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {matches
+            .filter(match => selectedChampionship === 'all' || match.championship === selectedChampionship)
+            .map(match => (
+            <div key={match.id} className={`bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border-2 ${
+              match.championship === 'LDV2' 
+                ? 'border-green-300' 
+                : 'border-blue-300'
+            }`}>
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-lg text-slate-800">{match.opponent}</h3>
+                    <span className={`text-xs font-bold px-3 py-1 rounded ${
+                      match.championship === 'LDV2' 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-blue-600 text-white'
+                    }`}>
+                      {match.championship}
+                    </span>
+                  </div>
+                  <p className="text-slate-600">{match.date} à {match.time}</p>
+                  <p className="text-sm text-blue-600">{match.selectedPlayers.length}/10 joueurs sélectionnés</p>
+                </div>
+                {userType === 'coach' && (
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        if (selectedMatch === match.id) {
+                          setSelectedMatch(null);
+                          setSelectedPlayers([]);
+                        } else {
+                          setSelectedMatch(match.id);
+                          setSelectedPlayers([...match.selectedPlayers]);
+                        }
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                    >
+                      {selectedMatch === match.id ? 'Fermer' : 'Sélectionner joueurs'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {selectedMatch === match.id && userType === 'coach' && (
+                <div className="border-t border-slate-200 pt-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-medium text-slate-800">Sélection des joueurs ({selectedPlayers.length}/10)</h4>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h5 className="font-medium text-green-700 mb-2">Équipe 2</h5>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {students.filter(s => s.team === '2').map(student => (
+                          <label key={student.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input 
+                              type="checkbox" 
+                              className="rounded" 
+                              checked={selectedPlayers.includes(student.id)}
+                              onChange={() => togglePlayerSelection(student.id)}
+                              disabled={!selectedPlayers.includes(student.id) && selectedPlayers.length >= 10}
+                            />
+                            <span className="text-slate-700">{student.firstName} {student.lastName}</span>
+                            {student.isCaptain && <span className="text-yellow-600">👑</span>}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h5 className="font-medium text-blue-700 mb-2">Équipe 3</h5>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {students.filter(s => s.team === '3').map(student => (
+                          <label key={student.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input 
+                              type="checkbox" 
+                              className="rounded" 
+                              checked={selectedPlayers.includes(student.id)}
+                              onChange={() => togglePlayerSelection(student.id)}
+                              disabled={!selectedPlayers.includes(student.id) && selectedPlayers.length >= 10}
+                            />
+                            <span className="text-slate-700">{student.firstName} {student.lastName}</span>
+                            {student.isCaptain && <span className="text-yellow-600">👑</span>}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      onClick={() => saveMatchSelection(match.id)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors"
+                    >
+                      Sauvegarder sélection
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedMatch(null);
+                        setSelectedPlayers([]);
+                      }}
+                      className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderStats = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-semibold text-slate-800">Statistiques de présence et engagement</h2>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border border-slate-200">
+          <h3 className="font-semibold mb-4 text-slate-800">Taux de présence par joueur</h3>
+          <div className="space-y-2">
+            {students.slice(0, 10).map(student => {
+              const attendanceRate = Math.floor(Math.random() * 30) + 70;
+              return (
+                <div key={student.id} className="flex justify-between items-center">
+                  <span className="text-sm text-slate-700">{student.firstName} {student.lastName}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 bg-slate-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${attendanceRate > 85 ? 'bg-green-600' : attendanceRate > 70 ? 'bg-orange-500' : 'bg-red-600'}`}
+                        style={{width: `${attendanceRate}%`}}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-medium w-12 text-slate-600">{attendanceRate}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border border-slate-200">
+          <h3 className="font-semibold mb-4 text-slate-800">Capitaines et leadership</h3>
+          <div className="space-y-3">
+            {students.filter(s => s.isCaptain).map(captain => (
+              <div key={captain.id} className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <span className="text-2xl">👑</span>
+                <div>
+                  <p className="font-medium text-slate-800">{captain.firstName} {captain.lastName}</p>
+                  <p className="text-sm text-slate-600">Capitaine Équipe {captain.team} - {captain.position}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderTeams = () => {
+    const getPlayersByPosition = (team) => {
+      const teamPlayers = students.filter(s => s.team === team);
+      return positions.reduce((acc, position) => {
+        acc[position] = teamPlayers.filter(p => p.position === position);
+        return acc;
+      }, {});
+    };
+
+    const renderTeamSection = (teamNumber, teamColor, borderColor, bgColor) => {
+      const playersByPosition = getPlayersByPosition(teamNumber);
+      const captains = students.filter(s => s.team === teamNumber && s.isCaptain);
+      
+      return (
+        <div className={`bg-white/80 backdrop-blur-sm rounded-lg shadow-sm border-2 ${borderColor}`}>
+          <div className={`${teamColor} text-white p-4 rounded-t-lg`}>
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold">Équipe {teamNumber}</h3>
+                <div className="text-sm opacity-90">
+                  Championnat LDV{teamNumber} • {students.filter(s => s.team === teamNumber).length} joueurs
+                </div>
+              </div>
+              <div className="text-right">
+                {captains.length > 0 && (
+                  <div className="text-sm opacity-90">
+                    <div className="flex items-center gap-1">
+                      <span>👑</span>
+                      <span>Capitaines: {captains.map(c => c.firstName + ' ' + c.lastName).join(', ')}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-4 space-y-4">
+            {positions.map(position => {
+              const positionPlayers = playersByPosition[position] || [];
+              if (positionPlayers.length === 0) return null;
+              
+              return (
+                <div key={position} className={`${bgColor} rounded-lg p-3`}>
+                  <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    <span>{position}</span>
+                    <span className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">
+                      {positionPlayers.length}
+                    </span>
+                  </h4>
+                  <div className="space-y-2">
+                    {positionPlayers.map(student => (
+                      <div key={student.id} className="bg-white/60 border border-slate-200 rounded-lg p-3">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h5 className="font-semibold text-slate-800">
+                                {student.firstName} {student.lastName}
+                              </h5>
+                              {student.isCaptain && (
+                                <span className="text-xs bg-yellow-500 text-white px-2 py-1 rounded-full flex items-center gap-1">
+                                  👑 Capitaine
+                                </span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600">
+                              <div>
+                                <span className="font-medium">Né le:</span> {student.birthDate || 'Non renseigné'}
+                              </div>
+                              <div>
+                                <span className="font-medium">Licence:</span> {student.licenseNumber}
+                              </div>
+                            </div>
+                          </div>
+                          {userType === 'coach' && (
+                            <div className="flex gap-1 ml-4">
+                              <button
+                                onClick={() => setEditingPlayer(student)}
+                                className="text-blue-600 hover:text-blue-800 p-1"
+                                title="Modifier"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                onClick={() => changePlayerTeam(student.id, teamNumber === '2' ? '3' : '2')}
+                                className={`${teamNumber === '2' ? 'text-indigo-600 hover:text-indigo-800' : 'text-green-600 hover:text-green-800'} p-1 text-xs font-bold`}
+                                title={`Transférer vers Équipe ${teamNumber === '2' ? '3' : '2'}`}
+                              >
+                                →{teamNumber === '2' ? '3' : '2'}
+                              </button>
+                              <button
+                                onClick={() => deleteStudent(student.id)}
+                                className="text-red-600 hover:text-red-800 p-1"
+                                title="Supprimer"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-semibold text-slate-800">Gestion des équipes</h2>
+          {userType === 'coach' && (
+            <button
+              onClick={() => setShowAddPlayer(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
+            >
+              <Plus size={16} />
+              Ajouter un joueur
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {renderTeamSection('2', 'bg-green-600', 'border-green-300', 'bg-green-50/80')}
+          {renderTeamSection('3', 'bg-blue-600', 'border-blue-300', 'bg-blue-50/80')}
+        </div>
+
+        {/* Modal d'ajout de joueur */}
+        {showAddPlayer && userType === 'coach' && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <h3 className="text-lg font-semibold mb-4">Ajouter un nouveau joueur</h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Prénom"
+                    value={newPlayer.firstName}
+                    onChange={(e) => setNewPlayer({...newPlayer, firstName: e.target.value})}
+                    className="border border-slate-300 rounded px-3 py-2"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Nom"
+                    value={newPlayer.lastName}
+                    onChange={(e) => setNewPlayer({...newPlayer, lastName: e.target.value})}
+                    className="border border-slate-300 rounded px-3 py-2"
+                  />
+                </div>
+                <input
+                  type="date"
+                  value={newPlayer.birthDate}
+                  onChange={(e) => setNewPlayer({...newPlayer, birthDate: e.target.value})}
+                  className="w-full border border-slate-300 rounded px-3 py-2"
+                />
+                <input
+                  type="text"
+                  placeholder="Numéro de licence"
+                  value={newPlayer.licenseNumber}
+                  onChange={(e) => setNewPlayer({...newPlayer, licenseNumber: e.target.value})}
+                  className="w-full border border-slate-300 rounded px-3 py-2"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <select
+                    value={newPlayer.position}
+                    onChange={(e) => setNewPlayer({...newPlayer, position: e.target.value})}
+                    className="border border-slate-300 rounded px-3 py-2"
+                  >
+                    {positions.map(pos => (
+                      <option key={pos} value={pos}>{pos}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={newPlayer.team}
+                    onChange={(e) => setNewPlayer({...newPlayer, team: e.target.value})}
+                    className="border border-slate-300 rounded px-3 py-2"
+                  >
+                    <option value="2">Équipe 2</option>
+                    <option value="3">Équipe 3</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={addStudent}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors"
+                >
+                  Ajouter
+                </button>
+                <button
+                  onClick={() => setShowAddPlayer(false)}
+                  className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal d'édition de joueur */}
+        {editingPlayer && userType === 'coach' && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <h3 className="text-lg font-semibold mb-4">Modifier le joueur</h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Prénom"
+                    value={editingPlayer.firstName}
+                    onChange={(e) => setEditingPlayer({...editingPlayer, firstName: e.target.value})}
+                    className="border border-slate-300 rounded px-3 py-2"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Nom"
+                    value={editingPlayer.lastName}
+                    onChange={(e) => setEditingPlayer({...editingPlayer, lastName: e.target.value})}
+                    className="border border-slate-300 rounded px-3 py-2"
+                  />
+                </div>
+                <input
+                  type="date"
+                  value={editingPlayer.birthDate}
+                  onChange={(e) => setEditingPlayer({...editingPlayer, birthDate: e.target.value})}
+                  className="w-full border border-slate-300 rounded px-3 py-2"
+                />
+                <input
+                  type="text"
+                  placeholder="Numéro de licence"
+                  value={editingPlayer.licenseNumber}
+                  onChange={(e) => setEditingPlayer({...editingPlayer, licenseNumber: e.target.value})}
+                  className="w-full border border-slate-300 rounded px-3 py-2"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <select
+                    value={editingPlayer.position}
+                    onChange={(e) => setEditingPlayer({...editingPlayer, position: e.target.value})}
+                    className="border border-slate-300 rounded px-3 py-2"
+                  >
+                    {positions.map(pos => (
+                      <option key={pos} value={pos}>{pos}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={editingPlayer.team}
+                    onChange={(e) => setEditingPlayer({...editingPlayer, team: e.target.value})}
+                    className="border border-slate-300 rounded px-3 py-2"
+                  >
+                    <option value="2">Équipe 2</option>
+                    <option value="3">Équipe 3</option>
+                  </select>
+                </div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={editingPlayer.isCaptain}
+                    onChange={(e) => setEditingPlayer({...editingPlayer, isCaptain: e.target.checked})}
+                  />
+                  <span className="text-sm">👑 Capitaine de l'équipe</span>
+                </label>
+              </div>
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={() => updateStudent(editingPlayer)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors"
+                >
+                  Sauvegarder
+                </button>
+                <button
+                  onClick={() => setEditingPlayer(null)}
+                  className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderPlayers = () => (
     <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border border-slate-200">
@@ -730,8 +1015,7 @@ const BasketballApp = () => {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
             <h1 className="text-xl font-bold text-slate-800">
-              🏀 Basketball Team Manager 
-              <span className="text-sm font-normal text-green-600 ml-2">✅ Supabase Connected</span>
+              🏀 Basketball Team Manager {connectionStatus === 'connected' && <span className="text-green-600">✅ Supabase Connected</span>}
             </h1>
             <div className="flex space-x-4">
               <button
@@ -742,6 +1026,33 @@ const BasketballApp = () => {
               >
                 <Trophy size={16} />
                 Tableau de bord
+              </button>
+              <button
+                onClick={() => setActiveView('attendance')}
+                className={`flex items-center gap-2 px-3 py-2 rounded transition-colors ${
+                  activeView === 'attendance' ? 'bg-slate-600 text-white' : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                <UserCheck size={16} />
+                Présences
+              </button>
+              <button
+                onClick={() => setActiveView('matches')}
+                className={`flex items-center gap-2 px-3 py-2 rounded transition-colors ${
+                  activeView === 'matches' ? 'bg-slate-600 text-white' : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                <Calendar size={16} />
+                Matchs
+              </button>
+              <button
+                onClick={() => setActiveView('stats')}
+                className={`flex items-center gap-2 px-3 py-2 rounded transition-colors ${
+                  activeView === 'stats' ? 'bg-slate-600 text-white' : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                <BarChart3 size={16} />
+                Statistiques
               </button>
               <button
                 onClick={() => setActiveView('teams')}
@@ -779,6 +1090,17 @@ const BasketballApp = () => {
     </nav>
   );
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Chargement des données depuis Supabase...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 relative">
       {/* Filigrane LDV */}
@@ -791,6 +1113,9 @@ const BasketballApp = () => {
       {renderNavigation()}
       <div className="max-w-7xl mx-auto px-4 py-6 relative z-10">
         {activeView === 'dashboard' && renderDashboard()}
+        {activeView === 'attendance' && renderAttendance()}
+        {activeView === 'matches' && renderMatches()}
+        {activeView === 'stats' && renderStats()}
         {activeView === 'teams' && renderTeams()}
         {activeView === 'players' && renderPlayers()}
       </div>
