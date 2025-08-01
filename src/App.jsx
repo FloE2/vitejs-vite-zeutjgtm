@@ -20,6 +20,7 @@ const BasketballApp = () => {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [supabaseMode, setSupabaseMode] = useState(true);
 
   // États pour l'édition
   const [selectedMatch, setSelectedMatch] = useState(null);
@@ -48,14 +49,107 @@ const BasketballApp = () => {
     { key: 'stage', label: 'En Stage', color: 'bg-teal-600', textColor: 'text-teal-600', code: 'S' },
   ];
 
-  // Chargement des données depuis Supabase
+  // Données statiques de fallback
+  const staticStudents = [
+    { id: 1, firstName: 'Antoine', lastName: 'Martin', birthDate: '2005-03-15', licenseNumber: 'LDV20001', position: 'Meneur', team: '2', isCaptain: true, lastAttendance: 'present' },
+    { id: 2, firstName: 'Marie', lastName: 'Dubois', birthDate: '2006-07-22', licenseNumber: 'LDV20002', position: 'Arrière', team: '2', isCaptain: false, lastAttendance: 'absent-warned' },
+    { id: 3, firstName: 'Lucas', lastName: 'Bernard', birthDate: '2005-12-08', licenseNumber: 'LDV20003', position: 'Ailier fort', team: '3', isCaptain: true, lastAttendance: 'present' },
+    { id: 4, firstName: 'Emma', lastName: 'Rousseau', birthDate: '2006-04-17', licenseNumber: 'LDV20004', position: 'Pivot', team: '3', isCaptain: false, lastAttendance: 'injured' },
+    { id: 5, firstName: 'Thomas', lastName: 'Leroy', birthDate: '2005-09-03', licenseNumber: 'LDV20005', position: 'Ailier', team: '2', isCaptain: false, lastAttendance: 'present' },
+    { id: 6, firstName: 'Sarah', lastName: 'Michel', birthDate: '2006-01-25', licenseNumber: 'LDV20006', position: 'Meneur', team: '3', isCaptain: false, lastAttendance: 'excused' },
+    { id: 7, firstName: 'Pierre', lastName: 'Durand', birthDate: '2005-11-14', licenseNumber: 'LDV20007', position: 'Arrière', team: '2', isCaptain: false, lastAttendance: 'present' },
+    { id: 8, firstName: 'Léa', lastName: 'Moreau', birthDate: '2006-06-09', licenseNumber: 'LDV20008', position: 'Ailier fort', team: '3', isCaptain: false, lastAttendance: 'stage' },
+    { id: 9, firstName: 'Jules', lastName: 'Petit', birthDate: '2005-08-27', licenseNumber: 'LDV20009', position: 'Pivot', team: '2', isCaptain: false, lastAttendance: 'absent' },
+    { id: 10, firstName: 'Camille', lastName: 'Roux', birthDate: '2006-02-18', licenseNumber: 'LDV20010', position: 'Ailier', team: '3', isCaptain: false, lastAttendance: 'present' },
+    { id: 11, firstName: 'Maxime', lastName: 'Garcia', birthDate: '2005-05-11', licenseNumber: 'LDV20011', position: 'Meneur', team: '2', isCaptain: false, lastAttendance: 'present' },
+    { id: 12, firstName: 'Chloé', lastName: 'Martinez', birthDate: '2006-10-06', licenseNumber: 'LDV20012', position: 'Arrière', team: '3', isCaptain: false, lastAttendance: 'present' },
+    { id: 13, firstName: 'Hugo', lastName: 'Silva', birthDate: '2005-04-30', licenseNumber: 'LDV20013', position: 'Ailier fort', team: '2', isCaptain: false, lastAttendance: 'absent-warned' },
+    { id: 14, firstName: 'Manon', lastName: 'Lopez', birthDate: '2006-08-13', licenseNumber: 'LDV20014', position: 'Pivot', team: '3', isCaptain: false, lastAttendance: 'stage' },
+    { id: 15, firstName: 'Nathan', lastName: 'Fabre', birthDate: '2005-12-24', licenseNumber: 'LDV20015', position: 'Ailier', team: '2', isCaptain: false, lastAttendance: 'present' }
+  ];
+
+  const staticMatches = [
+    {
+      id: 1,
+      date: '2025-08-07',
+      time: '18:00',
+      opponent: 'Lycée Voltaire',
+      championship: 'LDV2',
+      championshipFull: 'Championnat LDV2',
+      team: '2',
+      status: 'upcoming',
+      tenues: null,
+      arbitrage: null,
+      tableMarque: null,
+      selectedPlayers: [1, 5, 7, 9, 11]
+    },
+    {
+      id: 2,
+      date: '2025-08-08',
+      time: '17:00',
+      opponent: 'Lycée Henri IV',
+      championship: 'LDV3',
+      championshipFull: 'Championnat LDV3',
+      team: '3',
+      status: 'upcoming',
+      tenues: null,
+      arbitrage: null,
+      tableMarque: null,
+      selectedPlayers: [3, 4, 6, 8, 10]
+    },
+    {
+      id: 3,
+      date: '2025-08-14',
+      time: '19:30',
+      opponent: 'Collège Pasteur',
+      championship: 'LDV2',
+      championshipFull: 'Championnat LDV2',
+      team: '2',
+      status: 'upcoming',
+      tenues: null,
+      arbitrage: null,
+      tableMarque: null,
+      selectedPlayers: []
+    },
+    {
+      id: 4,
+      date: '2025-08-15',
+      time: '20:00',
+      opponent: 'Université Sorbonne',
+      championship: 'LDV3',
+      championshipFull: 'Championnat LDV3',
+      team: '3',
+      status: 'upcoming',
+      tenues: null,
+      arbitrage: null,
+      tableMarque: null,
+      selectedPlayers: []
+    }
+  ];
+
+  // Chargement des données
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setConnectionStatus('connecting');
 
-        // Charger les étudiants
+        console.log('🔍 Tentative de connexion à Supabase...');
+
+        // Test de connexion Supabase
+        const { data: testData, error: testError } = await supabase
+          .from('students')
+          .select('*')
+          .limit(1);
+
+        if (testError) {
+          console.log('⚠️ Supabase non disponible, passage en mode local');
+          throw testError;
+        }
+
+        console.log('✅ Supabase connecté !');
+
+        // Charger les étudiants depuis Supabase
         const { data: studentsData, error: studentsError } = await supabase
           .from('students')
           .select('*')
@@ -63,7 +157,6 @@ const BasketballApp = () => {
 
         if (studentsError) throw studentsError;
 
-        // Transformer les données
         const transformedStudents = studentsData.map(student => ({
           id: student.id,
           firstName: student.first_name,
@@ -78,7 +171,7 @@ const BasketballApp = () => {
 
         setStudents(transformedStudents);
 
-        // Charger les matchs
+        // Charger les matchs depuis Supabase
         const { data: matchesData, error: matchesError } = await supabase
           .from('matches')
           .select('*')
@@ -86,7 +179,6 @@ const BasketballApp = () => {
 
         if (matchesError) throw matchesError;
 
-        // Transformer les matchs
         const transformedMatches = matchesData.map(match => ({
           id: match.id,
           date: match.date,
@@ -99,15 +191,19 @@ const BasketballApp = () => {
           tenues: null,
           arbitrage: null,
           tableMarque: null,
-          selectedPlayers: [] // À implémenter plus tard avec match_selections
+          selectedPlayers: []
         }));
 
         setMatches(transformedMatches);
         setConnectionStatus('connected');
+        setSupabaseMode(true);
 
       } catch (error) {
-        console.error('Erreur lors du chargement:', error);
-        setConnectionStatus('error');
+        console.log('📱 Mode local activé');
+        setStudents(staticStudents);
+        setMatches(staticMatches);
+        setConnectionStatus('local');
+        setSupabaseMode(false);
       } finally {
         setLoading(false);
       }
@@ -116,40 +212,72 @@ const BasketballApp = () => {
     loadData();
   }, []);
 
-  // Fonctions CRUD pour les étudiants
+  // Fonctions CRUD
   const addStudent = async () => {
-    if (!newPlayer.firstName || !newPlayer.lastName || !newPlayer.licenseNumber) return;
+    console.log('🔍 Tentative d\'ajout de joueur:', newPlayer);
+    
+    if (!newPlayer.firstName || !newPlayer.lastName || !newPlayer.licenseNumber) {
+      alert('⚠️ Veuillez remplir tous les champs obligatoires (Prénom, Nom, Licence)');
+      return;
+    }
 
     try {
-      const { data, error } = await supabase
-        .from('students')
-        .insert([{
-          first_name: newPlayer.firstName,
-          last_name: newPlayer.lastName,
-          birth_date: newPlayer.birthDate,
-          license_number: newPlayer.licenseNumber,
+      if (supabaseMode) {
+        console.log('📤 Ajout via Supabase...');
+        
+        const { data, error } = await supabase
+          .from('students')
+          .insert({
+            first_name: newPlayer.firstName,
+            last_name: newPlayer.lastName,
+            birth_date: newPlayer.birthDate || null,
+            license_number: newPlayer.licenseNumber,
+            position: newPlayer.position,
+            team: newPlayer.team,
+            is_captain: false,
+            last_attendance: 'present'
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('❌ Erreur Supabase:', error);
+          throw error;
+        }
+
+        const newStudent = {
+          id: data.id,
+          firstName: data.first_name,
+          lastName: data.last_name,
+          birthDate: data.birth_date,
+          licenseNumber: data.license_number,
+          position: data.position,
+          team: data.team,
+          isCaptain: data.is_captain,
+          lastAttendance: data.last_attendance
+        };
+
+        setStudents([...students, newStudent]);
+      } else {
+        console.log('📱 Ajout en mode local...');
+        
+        const newId = Math.max(...students.map(s => s.id)) + 1;
+        const newStudent = {
+          id: newId,
+          firstName: newPlayer.firstName,
+          lastName: newPlayer.lastName,
+          birthDate: newPlayer.birthDate,
+          licenseNumber: newPlayer.licenseNumber,
           position: newPlayer.position,
           team: newPlayer.team,
-          is_captain: newPlayer.isCaptain,
-          last_attendance: 'present'
-        }])
-        .select();
+          isCaptain: false,
+          lastAttendance: 'present'
+        };
 
-      if (error) throw error;
+        setStudents([...students, newStudent]);
+      }
 
-      const newStudentTransformed = {
-        id: data[0].id,
-        firstName: data[0].first_name,
-        lastName: data[0].last_name,
-        birthDate: data[0].birth_date,
-        licenseNumber: data[0].license_number,
-        position: data[0].position,
-        team: data[0].team,
-        isCaptain: data[0].is_captain,
-        lastAttendance: data[0].last_attendance || 'present'
-      };
-
-      setStudents([...students, newStudentTransformed]);
+      // Réinitialiser le formulaire
       setNewPlayer({
         firstName: '',
         lastName: '',
@@ -159,9 +287,13 @@ const BasketballApp = () => {
         team: '2',
         isCaptain: false
       });
+      
       setShowAddPlayer(false);
+      alert('✅ Joueur ajouté avec succès !');
+
     } catch (error) {
-      console.error('Erreur lors de l\'ajout:', error);
+      console.error('💥 Erreur:', error);
+      alert(`Erreur: ${error.message}`);
     }
   };
 
@@ -181,22 +313,24 @@ const BasketballApp = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('students')
-        .update({
-          first_name: updatedPlayer.firstName,
-          last_name: updatedPlayer.lastName,
-          birth_date: updatedPlayer.birthDate,
-          license_number: updatedPlayer.licenseNumber,
-          position: updatedPlayer.position,
-          team: updatedPlayer.team,
-          is_captain: updatedPlayer.isCaptain,
-          last_attendance: updatedPlayer.lastAttendance
-        })
-        .eq('id', updatedPlayer.id)
-        .select();
+      if (supabaseMode) {
+        const { data, error } = await supabase
+          .from('students')
+          .update({
+            first_name: updatedPlayer.firstName,
+            last_name: updatedPlayer.lastName,
+            birth_date: updatedPlayer.birthDate,
+            license_number: updatedPlayer.licenseNumber,
+            position: updatedPlayer.position,
+            team: updatedPlayer.team,
+            is_captain: updatedPlayer.isCaptain,
+            last_attendance: updatedPlayer.lastAttendance
+          })
+          .eq('id', updatedPlayer.id)
+          .select();
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
       setStudents(students.map(student => 
         student.id === updatedPlayer.id ? updatedPlayer : student
@@ -204,6 +338,7 @@ const BasketballApp = () => {
       setEditingPlayer(null);
     } catch (error) {
       console.error('Erreur lors de la mise à jour:', error);
+      alert(`Erreur: ${error.message}`);
     }
   };
 
@@ -211,16 +346,19 @@ const BasketballApp = () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce joueur ?')) return;
 
     try {
-      const { error } = await supabase
-        .from('students')
-        .delete()
-        .eq('id', playerId);
+      if (supabaseMode) {
+        const { error } = await supabase
+          .from('students')
+          .delete()
+          .eq('id', playerId);
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
       setStudents(students.filter(student => student.id !== playerId));
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
+      alert(`Erreur: ${error.message}`);
     }
   };
 
@@ -235,12 +373,14 @@ const BasketballApp = () => {
 
   const updateAttendance = async (studentId, newAttendance) => {
     try {
-      const { error } = await supabase
-        .from('students')
-        .update({ last_attendance: newAttendance })
-        .eq('id', studentId);
+      if (supabaseMode) {
+        const { error } = await supabase
+          .from('students')
+          .update({ last_attendance: newAttendance })
+          .eq('id', studentId);
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
       setStudents(students.map(s => 
         s.id === studentId ? { ...s, lastAttendance: newAttendance } : s
@@ -294,9 +434,35 @@ const BasketballApp = () => {
     ));
   };
 
-  // Rendu des différentes vues
+  // Rendu des vues
   const renderDashboard = () => (
     <div className="space-y-6">
+      {/* Indicateur de statut */}
+      <div className="bg-white/80 backdrop-blur-sm p-4 rounded-lg shadow-sm border border-slate-200">
+        <div className="flex items-center justify-center gap-2">
+          {connectionStatus === 'connected' && (
+            <div className="flex items-center gap-2 text-green-600">
+              <span>🎉</span>
+              <span className="font-semibold">Connecté à Supabase !</span>
+              <span className="text-sm opacity-75">Base de données en temps réel active</span>
+            </div>
+          )}
+          {connectionStatus === 'local' && (
+            <div className="flex items-center gap-2 text-blue-600">
+              <span>📱</span>
+              <span className="font-semibold">Mode Local</span>
+              <span className="text-sm opacity-75">Données temporaires (non sauvegardées)</span>
+            </div>
+          )}
+          {connectionStatus === 'connecting' && (
+            <div className="flex items-center gap-2 text-orange-600">
+              <span>🔄</span>
+              <span className="font-semibold">Connexion en cours...</span>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white/80 backdrop-blur-sm p-4 rounded-lg shadow-sm border border-slate-200">
           <h3 className="font-semibold text-slate-700">Prochain entraînement</h3>
@@ -554,6 +720,35 @@ const BasketballApp = () => {
                   </div>
                 )}
               </div>
+
+              {match.selectedPlayers.length > 0 && (
+                <div className={`mb-4 p-3 border-2 rounded-lg ${
+                  match.championship === 'LDV2' 
+                    ? 'bg-green-50/80 border-green-200' 
+                    : 'bg-blue-50/80 border-blue-200'
+                }`}>
+                  <h4 className={`font-medium mb-2 ${
+                    match.championship === 'LDV2' ? 'text-green-800' : 'text-blue-800'
+                  }`}>
+                    Joueurs sélectionnés pour ce match :
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {match.selectedPlayers.map(playerId => {
+                      const player = students.find(s => s.id === playerId);
+                      return player ? (
+                        <div key={playerId} className="flex items-center gap-2 text-sm bg-white/60 p-2 rounded">
+                          <div className="w-4 h-4 rounded flex items-center justify-center bg-green-600 text-white text-xs font-bold">
+                            P
+                          </div>
+                          <span className="text-slate-700">{player.firstName} {player.lastName}</span>
+                          <span className="text-xs text-slate-500">(Eq. {player.team})</span>
+                          {player.isCaptain && <span className="text-yellow-600">👑</span>}
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+              )}
 
               {selectedMatch === match.id && userType === 'coach' && (
                 <div className="border-t border-slate-200 pt-4">
@@ -1015,7 +1210,7 @@ const BasketballApp = () => {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
             <h1 className="text-xl font-bold text-slate-800">
-              🏀 Basketball Team Manager {connectionStatus === 'connected' && <span className="text-green-600">✅ Supabase Connected</span>}
+              🏀 Basketball Team Manager
             </h1>
             <div className="flex space-x-4">
               <button
@@ -1095,7 +1290,7 @@ const BasketballApp = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Chargement des données depuis Supabase...</p>
+          <p className="text-slate-600">Chargement des données...</p>
         </div>
       </div>
     );
