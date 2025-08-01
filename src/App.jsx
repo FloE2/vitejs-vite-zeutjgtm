@@ -3,8 +3,8 @@ import { Calendar, Users, UserCheck, Trophy, Settings, Plus, BarChart3, Edit, Sa
 import { createClient } from '@supabase/supabase-js';
 
 // Configuration Supabase - VÉRIFIEZ CES VALEURS
-const supabaseUrl = 'https://ohwqrmbntunspkcoshf.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9od3FybWJudHVuc3BrY29zaGYiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcyMjQ0OTcyNCwiZXhwIjoyMDM4MDI1NzI0fQ.UzExCh-3ggLd6D-2vw6IH8z8m8nVEOqhfK8UwBgirZs';
+const supabaseUrl = 'https://loamfkojtxothevemetn.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvYW1ma29qdHhvdGhldmVtZXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwNzY2MDMsImV4cCI6MjA2OTY1MjYwM30.Zaf2b9c3Y_NHWixIPvmsXLgVxuMCBu-bloWmrs-ULiY';
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
