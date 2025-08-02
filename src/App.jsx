@@ -526,7 +526,7 @@ const BasketballApp = () => {
       {students.filter(s => s.team === '2').map(student => (
         <div key={student.id} className="flex justify-between items-center text-sm">
           <span className="text-slate-700">{student.firstName} {student.lastName}</span>
-          {student.isCaptain && <span className="text-yellow-600">👑</span>}
+          {student.isCaptain && <span className="text-yellow-600">🏀</span>}
         </div>
       ))}
     </div>
@@ -537,7 +537,7 @@ const BasketballApp = () => {
       {students.filter(s => s.team === '3').map(student => (
         <div key={student.id} className="flex justify-between items-center text-sm">
           <span className="text-slate-700">{student.firstName} {student.lastName}</span>
-          {student.isCaptain && <span className="text-yellow-600">👑</span>}
+          {student.isCaptain && <span className="text-yellow-600">🏀</span>}
         </div>
       ))}
     </div>
@@ -597,7 +597,7 @@ const BasketballApp = () => {
                       {student.firstName} {student.lastName}
                     </div>
                     <div className="text-xs text-slate-500">
-                      Eq.{student.team}{student.isCaptain && ' 👑'}
+                      Eq.{student.team}{student.isCaptain && ' 🏀'}
                     </div>
                   </div>
                 </div>
@@ -736,7 +736,7 @@ const BasketballApp = () => {
                           </div>
                           <span className="text-slate-700">{player.firstName} {player.lastName}</span>
                           <span className="text-xs text-slate-500">(Eq. {player.team})</span>
-                          {player.isCaptain && <span className="text-yellow-600">👑</span>}
+                          {player.isCaptain && <span className="text-yellow-600">🏀</span>}
                         </div>
                       ) : null;
                     })}
@@ -764,7 +764,7 @@ const BasketballApp = () => {
                               disabled={!selectedPlayers.includes(student.id) && selectedPlayers.length >= 10}
                             />
                             <span className="text-slate-700">{student.firstName} {student.lastName}</span>
-                            {student.isCaptain && <span className="text-yellow-600">👑</span>}
+                            {student.isCaptain && <span className="text-yellow-600">🏀</span>}
                           </label>
                         ))}
                       </div>
@@ -782,7 +782,7 @@ const BasketballApp = () => {
                               disabled={!selectedPlayers.includes(student.id) && selectedPlayers.length >= 10}
                             />
                             <span className="text-slate-700">{student.firstName} {student.lastName}</span>
-                            {student.isCaptain && <span className="text-yellow-600">👑</span>}
+                            {student.isCaptain && <span className="text-yellow-600">🏀</span>}
                           </label>
                         ))}
                       </div>
@@ -848,7 +848,7 @@ const BasketballApp = () => {
           <div className="space-y-3">
             {students.filter(s => s.isCaptain).map(captain => (
               <div key={captain.id} className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <span className="text-2xl">👑</span>
+                <span className="text-2xl">🏀</span>
                 <div>
                   <p className="font-medium text-slate-800">{captain.firstName} {captain.lastName}</p>
                   <p className="text-sm text-slate-600">Capitaine Équipe {captain.team} - {captain.position}</p>
@@ -888,7 +888,7 @@ const BasketballApp = () => {
                 {captains.length > 0 && (
                   <div className="text-sm opacity-90">
                     <div className="flex items-center gap-1">
-                      <span>👑</span>
+                      <span>🏀</span>
                       <span>Capitaines: {captains.map(c => c.firstName + ' ' + c.lastName).join(', ')}</span>
                     </div>
                   </div>
@@ -921,7 +921,7 @@ const BasketballApp = () => {
                               </h5>
                               {student.isCaptain && (
                                 <span className="text-xs bg-yellow-500 text-white px-2 py-1 rounded-full flex items-center gap-1">
-                                  👑 Capitaine
+                                  🏀 Capitaine
                                 </span>
                               )}
                             </div>
@@ -1124,7 +1124,7 @@ const BasketballApp = () => {
                     checked={editingPlayer.isCaptain}
                     onChange={(e) => setEditingPlayer({...editingPlayer, isCaptain: e.target.checked})}
                   />
-                  <span className="text-sm">👑 Capitaine de l'équipe</span>
+                  <span className="text-sm">🏀 Capitaine de l'équipe</span>
                 </label>
               </div>
               <div className="flex gap-2 mt-6">
@@ -1159,7 +1159,7 @@ const BasketballApp = () => {
               <div key={student.id} className="flex justify-between items-center p-2 border border-slate-200 rounded bg-white/50">
                 <div className="flex items-center gap-2">
                   <span className="text-slate-700">{student.firstName} {student.lastName}</span>
-                  {student.isCaptain && <span className="text-yellow-600">👑</span>}
+                  {student.isCaptain && <span className="text-yellow-600">🏀</span>}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-500">{student.position}</span>
@@ -1180,7 +1180,7 @@ const BasketballApp = () => {
               <div key={student.id} className="flex justify-between items-center p-2 border border-slate-200 rounded bg-white/50">
                 <div className="flex items-center gap-2">
                   <span className="text-slate-700">{student.firstName} {student.lastName}</span>
-                  {student.isCaptain && <span className="text-yellow-600">👑</span>}
+                  {student.isCaptain && <span className="text-yellow-600">🏀</span>}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-500">{student.position}</span>
