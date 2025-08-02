@@ -520,35 +520,29 @@ const BasketballApp = () => {
         <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border border-slate-200">
           <h3 className="text-lg font-semibold mb-4 text-slate-800">Composition des équipes</h3>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h4 className="font-medium text-green-700 mb-2">Équipe 2 ({students.filter(s => s.team === '2').length})</h4>
-              <div className="space-y-1">
-                {students.filter(s => s.team === '2').slice(0, 5).map(student => (
-                  <div key={student.id} className="flex justify-between items-center text-sm">
-                    <span className="text-slate-700">{student.firstName} {student.lastName}</span>
-                    {student.isCaptain && <span className="text-yellow-600">👑</span>}
-                  </div>
-                ))}
-                {students.filter(s => s.team === '2').length > 5 && (
-                  <p className="text-xs text-slate-500">+ {students.filter(s => s.team === '2').length - 5} autres...</p>
-                )}
-              </div>
-            </div>
-            <div>
-              <h4 className="font-medium text-blue-700 mb-2">Équipe 3 ({students.filter(s => s.team === '3').length})</h4>
-              <div className="space-y-1">
-                {students.filter(s => s.team === '3').slice(0, 5).map(student => (
-                  <div key={student.id} className="flex justify-between items-center text-sm">
-                    <span className="text-slate-700">{student.firstName} {student.lastName}</span>
-                    {student.isCaptain && <span className="text-yellow-600">👑</span>}
-                  </div>
-                ))}
-                {students.filter(s => s.team === '3').length > 5 && (
-                  <p className="text-xs text-slate-500">+ {students.filter(s => s.team === '3').length - 5} autres...</p>
-                )}
-              </div>
-            </div>
-          </div>
+  <div>
+    <h4 className="font-medium text-green-700 mb-2">Équipe 2 ({students.filter(s => s.team === '2').length})</h4>
+    <div className="space-y-1">
+      {students.filter(s => s.team === '2').map(student => (
+        <div key={student.id} className="flex justify-between items-center text-sm">
+          <span className="text-slate-700">{student.firstName} {student.lastName}</span>
+          {student.isCaptain && <span className="text-yellow-600">👑</span>}
+        </div>
+      ))}
+    </div>
+  </div>
+  <div>
+    <h4 className="font-medium text-blue-700 mb-2">Équipe 3 ({students.filter(s => s.team === '3').length})</h4>
+    <div className="space-y-1">
+      {students.filter(s => s.team === '3').map(student => (
+        <div key={student.id} className="flex justify-between items-center text-sm">
+          <span className="text-slate-700">{student.firstName} {student.lastName}</span>
+          {student.isCaptain && <span className="text-yellow-600">👑</span>}
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
         </div>
       </div>
     </div>
