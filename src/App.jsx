@@ -1467,7 +1467,7 @@ const BasketballApp = () => {
               <button
                 onClick={() => {
                   setEditingMatch(null);
-                  setShowEditMatch(false);
+                 setShowEditMatch(false);
                 }}
                 className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
               >
