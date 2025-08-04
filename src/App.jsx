@@ -52,7 +52,17 @@ const BasketballApp = () => {
     { key: 'excused', label: 'Excusé', color: 'bg-blue-600', textColor: 'text-blue-600', code: 'E' },
     { key: 'stage', label: 'En Stage', color: 'bg-teal-600', textColor: 'text-teal-600', code: 'S' },
   ];
-
+  // Ajouter ces nouveaux états après les autres états existants
+  const [showAddMatch, setShowAddMatch] = useState(false);
+  const [newMatch, setNewMatch] = useState({
+    date: '',
+    time: '',
+    opponent: '',
+    championship: 'LDV2',
+    team: '2',
+    lieu: 'Gymnase LDV',
+    status: 'upcoming'
+  });
   // Données statiques de fallback
   const staticStudents = [
     { id: 1, firstName: 'Antoine', lastName: 'Martin', birthDate: '2005-03-15', licenseNumber: 'LDV20001', position: 'Meneur', team: '2', isCaptain: true, lastAttendance: 'present' },
@@ -134,6 +144,8 @@ const BasketballApp = () => {
       selectedPlayers: []
     }
   ];
+
+  
 
   // Chargement des données
   useEffect(() => {
