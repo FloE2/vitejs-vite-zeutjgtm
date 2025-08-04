@@ -38,6 +38,10 @@ const BasketballApp = () => {
     isCaptain: false
   });
 
+  // Nouveaux états pour l'édition des matchs
+  const [editingMatch, setEditingMatch] = useState(null);
+  const [showEditMatch, setShowEditMatch] = useState(false);
+
   const positions = ['Meneur', 'Arrière', 'Ailier', 'Ailier fort', 'Pivot'];
 
   const attendanceStatuses = [
@@ -77,6 +81,7 @@ const BasketballApp = () => {
       championship: 'LDV2',
       championshipFull: 'Championnat LDV2',
       team: '2',
+      lieu: 'Gymnase LDV',
       status: 'upcoming',
       tenues: null,
       arbitrage: null,
@@ -91,6 +96,7 @@ const BasketballApp = () => {
       championship: 'LDV3',
       championshipFull: 'Championnat LDV3',
       team: '3',
+      lieu: 'Gymnase Henri IV',
       status: 'upcoming',
       tenues: null,
       arbitrage: null,
@@ -105,6 +111,7 @@ const BasketballApp = () => {
       championship: 'LDV2',
       championshipFull: 'Championnat LDV2',
       team: '2',
+      lieu: 'Gymnase Pasteur',
       status: 'upcoming',
       tenues: null,
       arbitrage: null,
@@ -119,6 +126,7 @@ const BasketballApp = () => {
       championship: 'LDV3',
       championshipFull: 'Championnat LDV3',
       team: '3',
+      lieu: 'Gymnase Sorbonne',
       status: 'upcoming',
       tenues: null,
       arbitrage: null,
@@ -187,6 +195,7 @@ const BasketballApp = () => {
           championship: match.championship,
           championshipFull: `Championnat ${match.championship}`,
           team: match.team,
+          lieu: match.lieu || 'Gymnase LDV',
           status: match.status,
           tenues: null,
           arbitrage: null,
@@ -390,6 +399,57 @@ const BasketballApp = () => {
     }
   };
 
+  // Nouvelle fonction pour modifier un match
+  const updateMatch = async (updatedMatch) => {
+    console.log('🔍 Tentative de modification de match:', updatedMatch);
+    
+    if (!updatedMatch.opponent || !updatedMatch.date || !updatedMatch.time || !updatedMatch.lieu) {
+      alert('⚠️ Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    try {
+      if (supabaseMode) {
+        console.log('📤 Modification via Supabase...');
+        
+        const { data, error } = await supabase
+          .from('matches')
+          .update({
+            date: updatedMatch.date,
+            time: updatedMatch.time,
+            opponent: updatedMatch.opponent,
+            championship: updatedMatch.championship,
+            team: updatedMatch.team,
+            lieu: updatedMatch.lieu,
+            status: updatedMatch.status
+          })
+          .eq('id', updatedMatch.id)
+          .select();
+
+        if (error) {
+          console.error('❌ Erreur Supabase:', error);
+          throw error;
+        }
+      }
+
+      // Mettre à jour la liste des matchs
+      setMatches(matches.map(match => 
+        match.id === updatedMatch.id ? {
+          ...updatedMatch,
+          championshipFull: `Championnat ${updatedMatch.championship}`
+        } : match
+      ));
+      
+      setEditingMatch(null);
+      setShowEditMatch(false);
+      alert('✅ Match modifié avec succès !');
+
+    } catch (error) {
+      console.error('💥 Erreur:', error);
+      alert(`Erreur: ${error.message}`);
+    }
+  };
+
   // Fonctions pour les matchs
   const saveMatchSelection = async (matchId) => {
     try {
@@ -442,7 +502,7 @@ const BasketballApp = () => {
         <div className="flex items-center justify-center gap-2">
           {connectionStatus === 'connected' && (
             <div className="flex items-center gap-2 text-green-600">
-              <span>🎉</span>
+              <span>🔥</span>
               <span className="font-semibold">Connecté à Supabase !</span>
               <span className="text-sm opacity-75">Base de données en temps réel active</span>
             </div>
@@ -504,14 +564,29 @@ const BasketballApp = () => {
                     </span>
                   </div>
                   <p className="text-sm text-slate-600">{match.date} à {match.time}</p>
+                  <p className="text-xs text-slate-500">📍 {match.lieu}</p>
                   <p className="text-xs text-blue-600">{match.selectedPlayers.length}/10 joueurs sélectionnés</p>
                 </div>
-                <button 
-                  onClick={() => setActiveView('matches')}
-                  className="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                >
-                  Gérer
-                </button>
+                <div className="flex gap-1">
+                  {userType === 'coach' && (
+                    <button 
+                      onClick={() => {
+                        setEditingMatch({...match});
+                        setShowEditMatch(true);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs transition-colors flex items-center gap-1"
+                      title="Modifier le match"
+                    >
+                      <Edit size={12} />
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => setActiveView('matches')}
+                    className="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                  >
+                    Gérer
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -520,29 +595,29 @@ const BasketballApp = () => {
         <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border border-slate-200">
           <h3 className="text-lg font-semibold mb-4 text-slate-800">Composition des équipes</h3>
           <div className="grid grid-cols-2 gap-4">
-  <div>
-    <h4 className="font-medium text-green-700 mb-2">Équipe 2 ({students.filter(s => s.team === '2').length})</h4>
-    <div className="space-y-1">
-      {students.filter(s => s.team === '2').map(student => (
-        <div key={student.id} className="flex justify-between items-center text-sm">
-          <span className="text-slate-700">{student.firstName} {student.lastName}</span>
-          {student.isCaptain && <span className="text-yellow-600">🏀</span>}
-        </div>
-      ))}
-    </div>
-  </div>
-  <div>
-    <h4 className="font-medium text-blue-700 mb-2">Équipe 3 ({students.filter(s => s.team === '3').length})</h4>
-    <div className="space-y-1">
-      {students.filter(s => s.team === '3').map(student => (
-        <div key={student.id} className="flex justify-between items-center text-sm">
-          <span className="text-slate-700">{student.firstName} {student.lastName}</span>
-          {student.isCaptain && <span className="text-yellow-600">🏀</span>}
-        </div>
-      ))}
-    </div>
-  </div>
-</div>
+            <div>
+              <h4 className="font-medium text-green-700 mb-2">Équipe 2 ({students.filter(s => s.team === '2').length})</h4>
+              <div className="space-y-1">
+                {students.filter(s => s.team === '2').map(student => (
+                  <div key={student.id} className="flex justify-between items-center text-sm">
+                    <span className="text-slate-700">{student.firstName} {student.lastName}</span>
+                    {student.isCaptain && <span className="text-yellow-600">🏀</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium text-blue-700 mb-2">Équipe 3 ({students.filter(s => s.team === '3').length})</h4>
+              <div className="space-y-1">
+                {students.filter(s => s.team === '3').map(student => (
+                  <div key={student.id} className="flex justify-between items-center text-sm">
+                    <span className="text-slate-700">{student.firstName} {student.lastName}</span>
+                    {student.isCaptain && <span className="text-yellow-600">🏀</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -693,10 +768,21 @@ const BasketballApp = () => {
                     </span>
                   </div>
                   <p className="text-slate-600">{match.date} à {match.time}</p>
+                  <p className="text-sm text-slate-500">📍 {match.lieu}</p>
                   <p className="text-sm text-blue-600">{match.selectedPlayers.length}/10 joueurs sélectionnés</p>
                 </div>
                 {userType === 'coach' && (
                   <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        setEditingMatch({...match});
+                        setShowEditMatch(true);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1"
+                    >
+                      <Edit size={14} />
+                      Modifier
+                    </button>
                     <button 
                       onClick={() => {
                         if (selectedMatch === match.id) {
@@ -707,7 +793,7 @@ const BasketballApp = () => {
                           setSelectedPlayers([...match.selectedPlayers]);
                         }
                       }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                      className="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded text-sm transition-colors"
                     >
                       {selectedMatch === match.id ? 'Fermer' : 'Sélectionner joueurs'}
                     </button>
@@ -1308,6 +1394,89 @@ const BasketballApp = () => {
         {activeView === 'teams' && renderTeams()}
         {activeView === 'players' && renderPlayers()}
       </div>
+
+      {/* Modal d'édition de match */}
+      {showEditMatch && editingMatch && userType === 'coach' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Modifier le match</h3>
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Adversaire"
+                value={editingMatch.opponent}
+                onChange={(e) => setEditingMatch({...editingMatch, opponent: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="date"
+                  value={editingMatch.date}
+                  onChange={(e) => setEditingMatch({...editingMatch, date: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                />
+                <input
+                  type="time"
+                  value={editingMatch.time}
+                  onChange={(e) => setEditingMatch({...editingMatch, time: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Lieu du match"
+                value={editingMatch.lieu}
+                onChange={(e) => setEditingMatch({...editingMatch, lieu: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <select
+                  value={editingMatch.championship}
+                  onChange={(e) => setEditingMatch({...editingMatch, championship: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                >
+                  <option value="LDV2">LDV2</option>
+                  <option value="LDV3">LDV3</option>
+                </select>
+                <select
+                  value={editingMatch.team}
+                  onChange={(e) => setEditingMatch({...editingMatch, team: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                >
+                  <option value="2">Équipe 2</option>
+                  <option value="3">Équipe 3</option>
+                </select>
+              </div>
+              <select
+                value={editingMatch.status}
+                onChange={(e) => setEditingMatch({...editingMatch, status: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              >
+                <option value="upcoming">À venir</option>
+                <option value="completed">Terminé</option>
+                <option value="cancelled">Annulé</option>
+              </select>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => updateMatch(editingMatch)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors"
+              >
+                Sauvegarder
+              </button>
+              <button
+                onClick={() => {
+                  setEditingMatch(null);
+                  setShowEditMatch(false);
+                }}
+                className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
