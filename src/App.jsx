@@ -38,9 +38,21 @@ const BasketballApp = () => {
     isCaptain: false
   });
 
-  // Nouveaux états pour l'édition des matchs
+  // États pour l'édition des matchs
   const [editingMatch, setEditingMatch] = useState(null);
   const [showEditMatch, setShowEditMatch] = useState(false);
+
+  // Nouveaux états pour la création de matchs
+  const [showAddMatch, setShowAddMatch] = useState(false);
+  const [newMatch, setNewMatch] = useState({
+    date: '',
+    time: '',
+    opponent: '',
+    championship: 'LDV2',
+    team: '2',
+    lieu: 'Gymnase LDV',
+    status: 'upcoming'
+  });
 
   const positions = ['Meneur', 'Arrière', 'Ailier', 'Ailier fort', 'Pivot'];
 
@@ -52,17 +64,7 @@ const BasketballApp = () => {
     { key: 'excused', label: 'Excusé', color: 'bg-blue-600', textColor: 'text-blue-600', code: 'E' },
     { key: 'stage', label: 'En Stage', color: 'bg-teal-600', textColor: 'text-teal-600', code: 'S' },
   ];
-  // Ajouter ces nouveaux états après les autres états existants
-  const [showAddMatch, setShowAddMatch] = useState(false);
-  const [newMatch, setNewMatch] = useState({
-    date: '',
-    time: '',
-    opponent: '',
-    championship: 'LDV2',
-    team: '2',
-    lieu: 'Gymnase LDV',
-    status: 'upcoming'
-  });
+
   // Données statiques de fallback
   const staticStudents = [
     { id: 1, firstName: 'Antoine', lastName: 'Martin', birthDate: '2005-03-15', licenseNumber: 'LDV20001', position: 'Meneur', team: '2', isCaptain: true, lastAttendance: 'present' },
@@ -144,8 +146,6 @@ const BasketballApp = () => {
       selectedPlayers: []
     }
   ];
-
-  
 
   // Chargement des données
   useEffect(() => {
@@ -233,7 +233,7 @@ const BasketballApp = () => {
     loadData();
   }, []);
 
-  // Fonctions CRUD
+  // Fonctions CRUD pour les joueurs
   const addStudent = async () => {
     console.log('🔍 Tentative d\'ajout de joueur:', newPlayer);
     
@@ -411,7 +411,98 @@ const BasketballApp = () => {
     }
   };
 
-  // Nouvelle fonction pour modifier un match
+  // Fonctions CRUD pour les matchs
+  const addMatch = async () => {
+    console.log('🔍 Tentative d\'ajout de match:', newMatch);
+    
+    if (!newMatch.opponent || !newMatch.date || !newMatch.time || !newMatch.lieu) {
+      alert('⚠️ Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    try {
+      if (supabaseMode) {
+        console.log('📤 Ajout via Supabase...');
+        
+        const { data, error } = await supabase
+          .from('matches')
+          .insert({
+            date: newMatch.date,
+            time: newMatch.time,
+            opponent: newMatch.opponent,
+            championship: newMatch.championship,
+            team: newMatch.team,
+            lieu: newMatch.lieu,
+            status: newMatch.status
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('❌ Erreur Supabase:', error);
+          throw error;
+        }
+
+        const addedMatch = {
+          id: data.id,
+          date: data.date,
+          time: data.time,
+          opponent: data.opponent,
+          championship: data.championship,
+          championshipFull: `Championnat ${data.championship}`,
+          team: data.team,
+          lieu: data.lieu,
+          status: data.status,
+          tenues: null,
+          arbitrage: null,
+          tableMarque: null,
+          selectedPlayers: []
+        };
+
+        setMatches([...matches, addedMatch]);
+      } else {
+        console.log('📱 Ajout en mode local...');
+        
+        const newId = Math.max(...matches.map(m => m.id)) + 1;
+        const addedMatch = {
+          id: newId,
+          date: newMatch.date,
+          time: newMatch.time,
+          opponent: newMatch.opponent,
+          championship: newMatch.championship,
+          championshipFull: `Championnat ${newMatch.championship}`,
+          team: newMatch.team,
+          lieu: newMatch.lieu,
+          status: newMatch.status,
+          tenues: null,
+          arbitrage: null,
+          tableMarque: null,
+          selectedPlayers: []
+        };
+
+        setMatches([...matches, addedMatch]);
+      }
+
+      // Réinitialiser le formulaire
+      setNewMatch({
+        date: '',
+        time: '',
+        opponent: '',
+        championship: 'LDV2',
+        team: '2',
+        lieu: 'Gymnase LDV',
+        status: 'upcoming'
+      });
+      
+      setShowAddMatch(false);
+      alert('✅ Match ajouté avec succès !');
+
+    } catch (error) {
+      console.error('💥 Erreur:', error);
+      alert(`Erreur: ${error.message}`);
+    }
+  };
+
   const updateMatch = async (updatedMatch) => {
     console.log('🔍 Tentative de modification de match:', updatedMatch);
     
@@ -750,7 +841,10 @@ const BasketballApp = () => {
               <option value="LDV3">Championnat LDV3</option>
             </select>
             {userType === 'coach' && (
-              <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors">
+              <button 
+                onClick={() => setShowAddMatch(true)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
+              >
                 <Plus size={16} />
                 Nouveau match
               </button>
@@ -1407,6 +1501,77 @@ const BasketballApp = () => {
         {activeView === 'players' && renderPlayers()}
       </div>
 
+      {/* Modal d'ajout de match */}
+      {showAddMatch && userType === 'coach' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Ajouter un nouveau match</h3>
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Adversaire"
+                value={newMatch.opponent}
+                onChange={(e) => setNewMatch({...newMatch, opponent: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="date"
+                  value={newMatch.date}
+                  onChange={(e) => setNewMatch({...newMatch, date: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                />
+                <input
+                  type="time"
+                  value={newMatch.time}
+                  onChange={(e) => setNewMatch({...newMatch, time: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Lieu du match"
+                value={newMatch.lieu}
+                onChange={(e) => setNewMatch({...newMatch, lieu: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <select
+                  value={newMatch.championship}
+                  onChange={(e) => setNewMatch({...newMatch, championship: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                >
+                  <option value="LDV2">LDV2</option>
+                  <option value="LDV3">LDV3</option>
+                </select>
+                <select
+                  value={newMatch.team}
+                  onChange={(e) => setNewMatch({...newMatch, team: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                >
+                  <option value="2">Équipe 2</option>
+                  <option value="3">Équipe 3</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={addMatch}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors"
+              >
+                Ajouter
+              </button>
+              <button
+                onClick={() => setShowAddMatch(false)}
+                className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal d'édition de match */}
       {showEditMatch && editingMatch && userType === 'coach' && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -1479,7 +1644,7 @@ const BasketballApp = () => {
               <button
                 onClick={() => {
                   setEditingMatch(null);
-                 setShowEditMatch(false);
+                  setShowEditMatch(false);
                 }}
                 className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
               >
