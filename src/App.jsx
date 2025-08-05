@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const BasketballApp = () => {
   const [activeView, setActiveView] = useState('dashboard');
-  const [userType, setUserType] = useState('coach');
+  const [userType, setUserType] = useState('player');
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [selectedChampionship, setSelectedChampionship] = useState('all');
   const [selectedDate, setSelectedDate] = useState('current');
@@ -42,7 +42,7 @@ const BasketballApp = () => {
   const [editingMatch, setEditingMatch] = useState(null);
   const [showEditMatch, setShowEditMatch] = useState(false);
 
-  // Nouveaux états pour la création de matchs
+  // États pour la création de matchs
   const [showAddMatch, setShowAddMatch] = useState(false);
   const [newMatch, setNewMatch] = useState({
     date: '',
@@ -53,6 +53,26 @@ const BasketballApp = () => {
     lieu: 'Gymnase LDV',
     status: 'upcoming'
   });
+
+  // NOUVEAUX ÉTATS POUR LES ENTRAÎNEMENTS
+  const [trainings, setTrainings] = useState([]);
+  const [showAddTraining, setShowAddTraining] = useState(false);
+  const [editingTraining, setEditingTraining] = useState(null);
+  const [showEditTraining, setShowEditTraining] = useState(false);
+  const [selectedTraining, setSelectedTraining] = useState(null);
+  const [newTraining, setNewTraining] = useState({
+    date: '',
+    time: '',
+    type: 'entrainement',
+    theme: 'Entraînement général',
+    lieu: 'Gymnase LDV',
+    team: 'all',
+    status: 'upcoming',
+    description: ''
+  });
+
+  // États pour l'historique des présences par entraînement
+  const [trainingAttendances, setTrainingAttendances] = useState([]);
 
   const positions = ['Meneur', 'Arrière', 'Ailier', 'Ailier fort', 'Pivot'];
 
@@ -73,172 +93,206 @@ const BasketballApp = () => {
     { id: 4, firstName: 'Emma', lastName: 'Rousseau', birthDate: '2006-04-17', licenseNumber: 'LDV20004', position: 'Pivot', team: '3', isCaptain: false, lastAttendance: 'injured' },
     { id: 5, firstName: 'Thomas', lastName: 'Leroy', birthDate: '2005-09-03', licenseNumber: 'LDV20005', position: 'Ailier', team: '2', isCaptain: false, lastAttendance: 'present' },
     { id: 6, firstName: 'Sarah', lastName: 'Michel', birthDate: '2006-01-25', licenseNumber: 'LDV20006', position: 'Meneur', team: '3', isCaptain: false, lastAttendance: 'excused' },
-    { id: 7, firstName: 'Pierre', lastName: 'Durand', birthDate: '2005-11-14', licenseNumber: 'LDV20007', position: 'Arrière', team: '2', isCaptain: false, lastAttendance: 'present' },
-    { id: 8, firstName: 'Léa', lastName: 'Moreau', birthDate: '2006-06-09', licenseNumber: 'LDV20008', position: 'Ailier fort', team: '3', isCaptain: false, lastAttendance: 'stage' },
-    { id: 9, firstName: 'Jules', lastName: 'Petit', birthDate: '2005-08-27', licenseNumber: 'LDV20009', position: 'Pivot', team: '2', isCaptain: false, lastAttendance: 'absent' },
-    { id: 10, firstName: 'Camille', lastName: 'Roux', birthDate: '2006-02-18', licenseNumber: 'LDV20010', position: 'Ailier', team: '3', isCaptain: false, lastAttendance: 'present' },
-    { id: 11, firstName: 'Maxime', lastName: 'Garcia', birthDate: '2005-05-11', licenseNumber: 'LDV20011', position: 'Meneur', team: '2', isCaptain: false, lastAttendance: 'present' },
-    { id: 12, firstName: 'Chloé', lastName: 'Martinez', birthDate: '2006-10-06', licenseNumber: 'LDV20012', position: 'Arrière', team: '3', isCaptain: false, lastAttendance: 'present' },
-    { id: 13, firstName: 'Hugo', lastName: 'Silva', birthDate: '2005-04-30', licenseNumber: 'LDV20013', position: 'Ailier fort', team: '2', isCaptain: false, lastAttendance: 'absent-warned' },
-    { id: 14, firstName: 'Manon', lastName: 'Lopez', birthDate: '2006-08-13', licenseNumber: 'LDV20014', position: 'Pivot', team: '3', isCaptain: false, lastAttendance: 'stage' },
-    { id: 15, firstName: 'Nathan', lastName: 'Fabre', birthDate: '2005-12-24', licenseNumber: 'LDV20015', position: 'Ailier', team: '2', isCaptain: false, lastAttendance: 'present' }
+    { id: 7, firstName: 'Hugo', lastName: 'Petit', birthDate: '2005-11-12', licenseNumber: 'LDV20007', position: 'Ailier fort', team: '2', isCaptain: false, lastAttendance: 'present' },
+    { id: 8, firstName: 'Léa', lastName: 'Garcia', birthDate: '2006-06-30', licenseNumber: 'LDV20008', position: 'Arrière', team: '3', isCaptain: false, lastAttendance: 'stage' }
   ];
 
   const staticMatches = [
+    { id: 1, date: '2025-08-07', time: '19:00', opponent: 'Voltaire', championship: 'LDV2', championshipFull: 'Championnat LDV2', team: '2', lieu: 'Gymnase Voltaire', status: 'upcoming', tenues: null, arbitrage: null, tableMarque: null, selectedPlayers: [] },
+    { id: 2, date: '2025-08-10', time: '15:30', opponent: 'Diderot', championship: 'LDV3', championshipFull: 'Championnat LDV3', team: '3', lieu: 'Gymnase LDV', status: 'upcoming', tenues: null, arbitrage: null, tableMarque: null, selectedPlayers: [] },
+    { id: 3, date: '2025-07-30', time: '18:00', opponent: 'Montaigne', championship: 'LDV2', championshipFull: 'Championnat LDV2', team: '2', lieu: 'Gymnase Montaigne', status: 'completed', tenues: 'Domicile', arbitrage: 'Coach adverse', tableMarque: 'Parents', selectedPlayers: [1, 2, 5, 7] }
+  ];
+
+  // DONNÉES STATIQUES POUR LES ENTRAÎNEMENTS
+  const staticTrainings = [
     {
       id: 1,
-      date: '2025-08-07',
+      date: '2025-08-05',
       time: '18:00',
-      opponent: 'Lycée Voltaire',
-      championship: 'LDV2',
-      championshipFull: 'Championnat LDV2',
-      team: '2',
+      type: 'entrainement',
+      theme: 'Défense individuelle',
       lieu: 'Gymnase LDV',
+      team: 'all',
       status: 'upcoming',
-      tenues: null,
-      arbitrage: null,
-      tableMarque: null,
-      selectedPlayers: [1, 5, 7, 9, 11]
+      description: 'Focus sur les techniques défensives de base'
     },
     {
       id: 2,
       date: '2025-08-08',
-      time: '17:00',
-      opponent: 'Lycée Henri IV',
-      championship: 'LDV3',
-      championshipFull: 'Championnat LDV3',
-      team: '3',
-      lieu: 'Gymnase Henri IV',
+      time: '18:00',
+      type: 'entrainement',
+      theme: 'Attaque rapide',
+      lieu: 'Gymnase LDV',
+      team: 'all',
       status: 'upcoming',
-      tenues: null,
-      arbitrage: null,
-      tableMarque: null,
-      selectedPlayers: [3, 4, 6, 8, 10]
+      description: 'Travail des contre-attaques et transitions'
     },
     {
       id: 3,
-      date: '2025-08-14',
-      time: '19:30',
-      opponent: 'Collège Pasteur',
-      championship: 'LDV2',
-      championshipFull: 'Championnat LDV2',
-      team: '2',
-      lieu: 'Gymnase Pasteur',
-      status: 'upcoming',
-      tenues: null,
-      arbitrage: null,
-      tableMarque: null,
-      selectedPlayers: []
+      date: '2025-07-28',
+      time: '18:00',
+      type: 'entrainement',
+      theme: 'Tirs à 3 points',
+      lieu: 'Gymnase LDV',
+      team: 'all',
+      status: 'completed',
+      description: 'Perfectionnement des tirs extérieurs'
     },
     {
       id: 4,
-      date: '2025-08-15',
-      time: '20:00',
-      opponent: 'Université Sorbonne',
-      championship: 'LDV3',
-      championshipFull: 'Championnat LDV3',
-      team: '3',
-      lieu: 'Gymnase Sorbonne',
-      status: 'upcoming',
-      tenues: null,
-      arbitrage: null,
-      tableMarque: null,
-      selectedPlayers: []
+      date: '2025-07-25',
+      time: '18:00',
+      type: 'entrainement',
+      theme: 'Rebonds offensifs',
+      lieu: 'Gymnase LDV',
+      team: 'all',
+      status: 'completed',
+      description: 'Amélioration du jeu près du panier'
     }
   ];
 
-  // Chargement des données
+  // Historique des présences par entraînement
+  const staticTrainingAttendances = [
+    {
+      id: 1,
+      trainingId: 3,
+      date: '2025-07-28',
+      attendances: [
+        { studentId: 1, status: 'present' },
+        { studentId: 2, status: 'absent-warned' },
+        { studentId: 3, status: 'present' },
+        { studentId: 4, status: 'injured' },
+        { studentId: 5, status: 'present' },
+        { studentId: 6, status: 'excused' },
+        { studentId: 7, status: 'present' },
+        { studentId: 8, status: 'stage' }
+      ]
+    },
+    {
+      id: 2,
+      trainingId: 4,
+      date: '2025-07-25',
+      attendances: [
+        { studentId: 1, status: 'present' },
+        { studentId: 2, status: 'present' },
+        { studentId: 3, status: 'excused' },
+        { studentId: 4, status: 'present' },
+        { studentId: 5, status: 'absent' },
+        { studentId: 6, status: 'present' },
+        { studentId: 7, status: 'present' },
+        { studentId: 8, status: 'present' }
+      ]
+    }
+  ];
+
+  // Initialisation des données
   useEffect(() => {
-    const loadData = async () => {
+    const initializeData = async () => {
+      setLoading(true);
+      
       try {
-        setLoading(true);
-        setConnectionStatus('connecting');
+        if (supabaseMode) {
+          console.log('🔥 Tentative de connexion à Supabase...');
+          setConnectionStatus('connecting');
 
-        console.log('🔍 Tentative de connexion à Supabase...');
+          // Test de connexion
+          const { data: testData, error: testError } = await supabase
+            .from('students')
+            .select('count')
+            .limit(1);
 
-        // Test de connexion Supabase
-        const { data: testData, error: testError } = await supabase
-          .from('students')
-          .select('*')
-          .limit(1);
+          if (testError) throw testError;
 
-        if (testError) {
-          console.log('⚠️ Supabase non disponible, passage en mode local');
-          throw testError;
+          console.log('✅ Connexion Supabase réussie !');
+          setConnectionStatus('connected');
+
+          // Charger les données depuis Supabase
+          const [studentsResult, matchesResult, trainingsResult, attendancesResult] = await Promise.all([
+            supabase.from('students').select('*'),
+            supabase.from('matches').select('*'),
+            supabase.from('trainings').select('*'),
+            supabase.from('training_attendances').select('*')
+          ]);
+
+          if (studentsResult.error) throw studentsResult.error;
+          if (matchesResult.error) throw matchesResult.error;
+
+          // Mapper les données des étudiants
+          setStudents(studentsResult.data.map(student => ({
+            id: student.id,
+            firstName: student.first_name,
+            lastName: student.last_name,
+            birthDate: student.birth_date,
+            licenseNumber: student.license_number,
+            position: student.position,
+            team: student.team,
+            isCaptain: student.is_captain,
+            lastAttendance: student.last_attendance || 'present'
+          })));
+
+          // Mapper les données des matchs
+          setMatches(matchesResult.data.map(match => ({
+            id: match.id,
+            date: match.date,
+            time: match.time,
+            opponent: match.opponent,
+            championship: match.championship,
+            championshipFull: `Championnat ${match.championship}`,
+            team: match.team,
+            lieu: match.lieu,
+            status: match.status,
+            tenues: match.tenues,
+            arbitrage: match.arbitrage,
+            tableMarque: match.table_marque,
+            selectedPlayers: []
+          })));
+
+          // Mapper les données des entraînements
+          if (!trainingsResult.error) {
+            setTrainings(trainingsResult.data || []);
+          } else {
+            setTrainings(staticTrainings);
+          }
+
+          // Mapper les présences d'entraînements
+          if (!attendancesResult.error) {
+            setTrainingAttendances(attendancesResult.data.map(ta => ({
+              id: ta.id,
+              trainingId: ta.training_id,
+              date: ta.date,
+              attendances: ta.attendances
+            })) || []);
+          } else {
+            setTrainingAttendances(staticTrainingAttendances);
+          }
+
+        } else {
+          throw new Error('Mode Supabase désactivé');
         }
-
-        console.log('✅ Supabase connecté !');
-
-        // Charger les étudiants depuis Supabase
-        const { data: studentsData, error: studentsError } = await supabase
-          .from('students')
-          .select('*')
-          .order('last_name', { ascending: true });
-
-        if (studentsError) throw studentsError;
-
-        const transformedStudents = studentsData.map(student => ({
-          id: student.id,
-          firstName: student.first_name,
-          lastName: student.last_name,
-          birthDate: student.birth_date,
-          licenseNumber: student.license_number,
-          position: student.position,
-          team: student.team,
-          isCaptain: student.is_captain,
-          lastAttendance: student.last_attendance || 'present'
-        }));
-
-        setStudents(transformedStudents);
-
-        // Charger les matchs depuis Supabase
-        const { data: matchesData, error: matchesError } = await supabase
-          .from('matches')
-          .select('*')
-          .order('date', { ascending: true });
-
-        if (matchesError) throw matchesError;
-
-        const transformedMatches = matchesData.map(match => ({
-          id: match.id,
-          date: match.date,
-          time: match.time,
-          opponent: match.opponent,
-          championship: match.championship,
-          championshipFull: `Championnat ${match.championship}`,
-          team: match.team,
-          lieu: match.lieu || 'Gymnase LDV',
-          status: match.status,
-          tenues: null,
-          arbitrage: null,
-          tableMarque: null,
-          selectedPlayers: []
-        }));
-
-        setMatches(transformedMatches);
-        setConnectionStatus('connected');
-        setSupabaseMode(true);
-
       } catch (error) {
-        console.log('📱 Mode local activé');
-        setStudents(staticStudents);
-        setMatches(staticMatches);
+        console.warn('⚠️ Échec de la connexion Supabase, basculement en mode local:', error.message);
         setConnectionStatus('local');
         setSupabaseMode(false);
-      } finally {
-        setLoading(false);
+
+        // Utiliser les données statiques
+        setStudents(staticStudents);
+        setMatches(staticMatches);
+        setTrainings(staticTrainings);
+        setTrainingAttendances(staticTrainingAttendances);
       }
+
+      setLoading(false);
     };
 
-    loadData();
+    initializeData();
   }, []);
 
-  // Fonctions CRUD pour les joueurs
+  // Fonctions CRUD pour les étudiants
   const addStudent = async () => {
-    console.log('🔍 Tentative d\'ajout de joueur:', newPlayer);
+    console.log('🔍 Tentative d\'ajout d\'étudiant:', newPlayer);
     
-    if (!newPlayer.firstName || !newPlayer.lastName || !newPlayer.licenseNumber) {
-      alert('⚠️ Veuillez remplir tous les champs obligatoires (Prénom, Nom, Licence)');
+    if (!newPlayer.firstName || !newPlayer.lastName || !newPlayer.birthDate || !newPlayer.licenseNumber) {
+      alert('⚠️ Veuillez remplir tous les champs obligatoires');
       return;
     }
 
@@ -251,11 +305,11 @@ const BasketballApp = () => {
           .insert({
             first_name: newPlayer.firstName,
             last_name: newPlayer.lastName,
-            birth_date: newPlayer.birthDate || null,
+            birth_date: newPlayer.birthDate,
             license_number: newPlayer.licenseNumber,
             position: newPlayer.position,
             team: newPlayer.team,
-            is_captain: false,
+            is_captain: newPlayer.isCaptain,
             last_attendance: 'present'
           })
           .select()
@@ -266,7 +320,7 @@ const BasketballApp = () => {
           throw error;
         }
 
-        const newStudent = {
+        const addedStudent = {
           id: data.id,
           firstName: data.first_name,
           lastName: data.last_name,
@@ -275,15 +329,15 @@ const BasketballApp = () => {
           position: data.position,
           team: data.team,
           isCaptain: data.is_captain,
-          lastAttendance: data.last_attendance
+          lastAttendance: data.last_attendance || 'present'
         };
 
-        setStudents([...students, newStudent]);
+        setStudents([...students, addedStudent]);
       } else {
         console.log('📱 Ajout en mode local...');
         
         const newId = Math.max(...students.map(s => s.id)) + 1;
-        const newStudent = {
+        const addedStudent = {
           id: newId,
           firstName: newPlayer.firstName,
           lastName: newPlayer.lastName,
@@ -291,11 +345,11 @@ const BasketballApp = () => {
           licenseNumber: newPlayer.licenseNumber,
           position: newPlayer.position,
           team: newPlayer.team,
-          isCaptain: false,
+          isCaptain: newPlayer.isCaptain,
           lastAttendance: 'present'
         };
 
-        setStudents([...students, newStudent]);
+        setStudents([...students, addedStudent]);
       }
 
       // Réinitialiser le formulaire
@@ -311,31 +365,17 @@ const BasketballApp = () => {
       
       setShowAddPlayer(false);
       alert('✅ Joueur ajouté avec succès !');
-
+      
     } catch (error) {
-      console.error('💥 Erreur:', error);
+      console.error('Erreur lors de l\'ajout:', error);
       alert(`Erreur: ${error.message}`);
     }
   };
 
   const updateStudent = async (updatedPlayer) => {
-    const originalPlayer = students.find(s => s.id === updatedPlayer.id);
-    
-    if (originalPlayer.team !== updatedPlayer.team) {
-      updatedPlayer.isCaptain = false;
-    }
-    
-    if (updatedPlayer.isCaptain) {
-      const currentCaptains = students.filter(s => s.team === updatedPlayer.team && s.isCaptain && s.id !== updatedPlayer.id);
-      if (currentCaptains.length >= 2) {
-        alert('Il ne peut y avoir que 2 capitaines maximum par équipe');
-        return;
-      }
-    }
-
     try {
       if (supabaseMode) {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('students')
           .update({
             first_name: updatedPlayer.firstName,
@@ -347,8 +387,7 @@ const BasketballApp = () => {
             is_captain: updatedPlayer.isCaptain,
             last_attendance: updatedPlayer.lastAttendance
           })
-          .eq('id', updatedPlayer.id)
-          .select();
+          .eq('id', updatedPlayer.id);
 
         if (error) throw error;
       }
@@ -496,9 +535,9 @@ const BasketballApp = () => {
       
       setShowAddMatch(false);
       alert('✅ Match ajouté avec succès !');
-
+      
     } catch (error) {
-      console.error('💥 Erreur:', error);
+      console.error('Erreur lors de l\'ajout:', error);
       alert(`Erreur: ${error.message}`);
     }
   };
@@ -546,29 +585,240 @@ const BasketballApp = () => {
       setEditingMatch(null);
       setShowEditMatch(false);
       alert('✅ Match modifié avec succès !');
-
+      
     } catch (error) {
-      console.error('💥 Erreur:', error);
+      console.error('Erreur lors de la modification:', error);
       alert(`Erreur: ${error.message}`);
     }
   };
 
-  // Fonctions pour les matchs
-  const saveMatchSelection = async (matchId) => {
+  const deleteMatch = async (matchId) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce match ?')) return;
+
     try {
-      setMatches(matches.map(match => 
-        match.id === matchId ? { ...match, selectedPlayers } : match
-      ));
-      setSelectedMatch(null);
-      setSelectedPlayers([]);
+      if (supabaseMode) {
+        const { error } = await supabase
+          .from('matches')
+          .delete()
+          .eq('id', matchId);
+
+        if (error) throw error;
+      }
+
+      setMatches(matches.filter(match => match.id !== matchId));
+      alert('✅ Match supprimé avec succès !');
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
+      console.error('Erreur lors de la suppression:', error);
+      alert(`Erreur: ${error.message}`);
     }
   };
 
-  const assignResponsibility = (matchId, role, playerId) => {
-    const playerName = playerId ? students.find(s => s.id === parseInt(playerId))?.firstName + ' ' + students.find(s => s.id === parseInt(playerId))?.lastName : null;
-    setMatches(matches.map(match => 
+  // NOUVELLES FONCTIONS CRUD POUR LES ENTRAÎNEMENTS
+  const addTraining = async () => {
+    console.log('🔍 Tentative d\'ajout d\'entraînement:', newTraining);
+    
+    if (!newTraining.date || !newTraining.time || !newTraining.theme) {
+      alert('⚠️ Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    try {
+      if (supabaseMode) {
+        console.log('📤 Ajout via Supabase...');
+        
+        const { data, error } = await supabase
+          .from('trainings')
+          .insert({
+            date: newTraining.date,
+            time: newTraining.time,
+            type: newTraining.type,
+            theme: newTraining.theme,
+            lieu: newTraining.lieu,
+            team: newTraining.team,
+            status: newTraining.status,
+            description: newTraining.description
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('❌ Erreur Supabase:', error);
+          throw error;
+        }
+
+        setTrainings([...trainings, data]);
+      } else {
+        console.log('📱 Ajout en mode local...');
+        
+        const newId = Math.max(...trainings.map(t => t.id), 0) + 1;
+        const addedTraining = {
+          id: newId,
+          ...newTraining
+        };
+
+        setTrainings([...trainings, addedTraining]);
+      }
+
+      // Réinitialiser le formulaire
+      setNewTraining({
+        date: '',
+        time: '',
+        type: 'entrainement',
+        theme: 'Entraînement général',
+        lieu: 'Gymnase LDV',
+        team: 'all',
+        status: 'upcoming',
+        description: ''
+      });
+      
+      setShowAddTraining(false);
+      alert('✅ Entraînement ajouté avec succès !');
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout:', error);
+      alert(`Erreur: ${error.message}`);
+    }
+  };
+
+  const updateTraining = async (updatedTraining) => {
+    console.log('🔍 Tentative de modification d\'entraînement:', updatedTraining);
+    
+    if (!updatedTraining.date || !updatedTraining.time || !updatedTraining.theme) {
+      alert('⚠️ Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    try {
+      if (supabaseMode) {
+        console.log('📤 Modification via Supabase...');
+        
+        const { data, error } = await supabase
+          .from('trainings')
+          .update({
+            date: updatedTraining.date,
+            time: updatedTraining.time,
+            type: updatedTraining.type,
+            theme: updatedTraining.theme,
+            lieu: updatedTraining.lieu,
+            team: updatedTraining.team,
+            status: updatedTraining.status,
+            description: updatedTraining.description
+          })
+          .eq('id', updatedTraining.id)
+          .select();
+
+        if (error) {
+          console.error('❌ Erreur Supabase:', error);
+          throw error;
+        }
+      }
+
+      // Mettre à jour la liste des entraînements
+      setTrainings(trainings.map(training => 
+        training.id === updatedTraining.id ? updatedTraining : training
+      ));
+      
+      setEditingTraining(null);
+      setShowEditTraining(false);
+      alert('✅ Entraînement modifié avec succès !');
+      
+    } catch (error) {
+      console.error('Erreur lors de la modification:', error);
+      alert(`Erreur: ${error.message}`);
+    }
+  };
+
+  const deleteTraining = async (trainingId) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet entraînement ?')) return;
+
+    try {
+      if (supabaseMode) {
+        const { error } = await supabase
+          .from('trainings')
+          .delete()
+          .eq('id', trainingId);
+
+        if (error) throw error;
+      }
+
+      setTrainings(trainings.filter(training => training.id !== trainingId));
+      alert('✅ Entraînement supprimé avec succès !');
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      alert(`Erreur: ${error.message}`);
+    }
+  };
+
+  const saveTrainingAttendance = async (trainingId, attendances) => {
+    try {
+      const attendanceData = {
+        trainingId: trainingId,
+        date: new Date().toISOString().split('T')[0],
+        attendances: students.map(student => ({
+          studentId: student.id,
+          status: student.lastAttendance
+        }))
+      };
+
+      if (supabaseMode) {
+        // Vérifier si les présences existent déjà
+        const { data: existing } = await supabase
+          .from('training_attendances')
+          .select('id')
+          .eq('training_id', trainingId)
+          .single();
+
+        if (existing) {
+          // Mettre à jour
+          const { error } = await supabase
+            .from('training_attendances')
+            .update({
+              attendances: attendanceData.attendances,
+              updated_at: new Date().toISOString()
+            })
+            .eq('training_id', trainingId);
+
+          if (error) throw error;
+        } else {
+          // Créer nouveau
+          const { error } = await supabase
+            .from('training_attendances')
+            .insert({
+              training_id: trainingId,
+              date: attendanceData.date,
+              attendances: attendanceData.attendances
+            });
+
+          if (error) throw error;
+        }
+      }
+
+      // Mettre à jour localement
+      const existingIndex = trainingAttendances.findIndex(ta => ta.trainingId === trainingId);
+      if (existingIndex >= 0) {
+        const updatedAttendances = [...trainingAttendances];
+        updatedAttendances[existingIndex] = attendanceData;
+        setTrainingAttendances(updatedAttendances);
+      } else {
+        setTrainingAttendances([...trainingAttendances, attendanceData]);
+      }
+
+      // Marquer l'entraînement comme terminé
+      const updatedTraining = trainings.find(t => t.id === trainingId);
+      if (updatedTraining && updatedTraining.status === 'upcoming') {
+        await updateTraining({ ...updatedTraining, status: 'completed' });
+      }
+
+      alert('✅ Présences sauvegardées avec succès !');
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde des présences:', error);
+      alert(`Erreur: ${error.message}`);
+    }
+  };
+
+  // Fonctions utilitaires pour les matchs
+  const updateMatchRole = (matchId, role, playerName) => {
+    setMatches(matches.map(match =>
       match.id === matchId ? { ...match, [role]: playerName } : match
     ));
   };
@@ -629,7 +879,22 @@ const BasketballApp = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white/80 backdrop-blur-sm p-4 rounded-lg shadow-sm border border-slate-200">
           <h3 className="font-semibold text-slate-700">Prochain entraînement</h3>
-          <p className="text-slate-600">Lundi 4 Août - 18:00</p>
+          {(() => {
+            const nextTraining = trainings
+              .filter(t => t.status === 'upcoming')
+              .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+            
+            return nextTraining ? (
+              <div>
+                <p className="text-slate-600">
+                  {new Date(nextTraining.date).toLocaleDateString('fr-FR')} - {nextTraining.time}
+                </p>
+                <p className="text-sm text-slate-500">{nextTraining.theme}</p>
+              </div>
+            ) : (
+              <p className="text-slate-500 italic">Aucun entraînement planifié</p>
+            );
+          })()}
         </div>
         <div className="bg-white/80 backdrop-blur-sm p-4 rounded-lg shadow-sm border border-slate-200">
           <h3 className="font-semibold text-slate-700">Prochain match</h3>
@@ -666,29 +931,8 @@ const BasketballApp = () => {
                       {match.championship}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-600">{match.date} à {match.time}</p>
-                  <p className="text-xs text-slate-500">📍 {match.lieu}</p>
-                  <p className="text-xs text-blue-600">{match.selectedPlayers.length}/10 joueurs sélectionnés</p>
-                </div>
-                <div className="flex gap-1">
-                  {userType === 'coach' && (
-                    <button 
-                      onClick={() => {
-                        setEditingMatch({...match});
-                        setShowEditMatch(true);
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs transition-colors flex items-center gap-1"
-                      title="Modifier le match"
-                    >
-                      <Edit size={12} />
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => setActiveView('matches')}
-                    className="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                  >
-                    Gérer
-                  </button>
+                  <p className="text-sm text-slate-600">{new Date(match.date).toLocaleDateString('fr-FR')} - {match.time}</p>
+                  <p className="text-xs text-slate-500">{match.lieu}</p>
                 </div>
               </div>
             ))}
@@ -696,7 +940,27 @@ const BasketballApp = () => {
         </div>
 
         <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border border-slate-200">
-          <h3 className="text-lg font-semibold mb-4 text-slate-800">Composition des équipes</h3>
+          <h3 className="text-lg font-semibold mb-4 text-slate-800">Prochains entraînements</h3>
+          <div className="space-y-3">
+            {trainings.filter(t => t.status === 'upcoming').slice(0, 3).map(training => (
+              <div key={training.id} className="flex justify-between items-center p-3 border-2 rounded-lg border-blue-300 bg-blue-50/80">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-medium text-slate-800">{training.theme}</p>
+                    <span className="text-xs font-bold px-2 py-1 rounded bg-blue-600 text-white">
+                      Entraînement
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600">{new Date(training.date).toLocaleDateString('fr-FR')} - {training.time}</p>
+                  <p className="text-xs text-slate-500">{training.lieu}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border border-slate-200">
+          <h3 className="text-lg font-semibold mb-4 text-slate-800">Aperçu des équipes</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <h4 className="font-medium text-green-700 mb-2">Équipe 2 ({students.filter(s => s.team === '2').length})</h4>
@@ -756,8 +1020,19 @@ const BasketballApp = () => {
         <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-4 border border-slate-200">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-semibold text-slate-800">📋 Liste d'appel - {new Date().toLocaleDateString('fr-FR')}</h3>
-            <div className="text-sm text-slate-600">
-              {presentCount}/{students.filter(s => selectedTeam === 'all' || s.team === selectedTeam).length} présents
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-slate-600">
+                {presentCount}/{students.filter(s => selectedTeam === 'all' || s.team === selectedTeam).length} présents
+              </div>
+              {selectedTraining && userType === 'coach' && (
+                <button
+                  onClick={() => saveTrainingAttendance(selectedTraining.id)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm flex items-center gap-2"
+                >
+                  <Save size={14} />
+                  Sauvegarder les présences
+                </button>
+              )}
             </div>
           </div>
           
@@ -781,22 +1056,25 @@ const BasketballApp = () => {
                 </div>
                 
                 {userType === 'coach' ? (
-                  <select
-                    value={student.lastAttendance}
-                    onChange={(e) => updateAttendance(student.id, e.target.value)}
-                    className={`border rounded px-1 py-1 font-bold text-white text-xs w-12 flex-shrink-0 ${
-                      attendanceStatuses.find(s => s.key === student.lastAttendance)?.color || 'bg-gray-400'
-                    }`}
-                  >
+                  <div className="flex gap-1">
                     {attendanceStatuses.map(status => (
-                      <option key={status.key} value={status.key} className="text-black">
+                      <button
+                        key={status.key}
+                        onClick={() => updateAttendance(student.id, status.key)}
+                        className={`w-6 h-6 rounded text-white text-xs font-bold transition-colors ${
+                          student.lastAttendance === status.key 
+                            ? status.color 
+                            : 'bg-slate-300 hover:bg-slate-400'
+                        }`}
+                        title={status.label}
+                      >
                         {status.code}
-                      </option>
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 ) : (
-                  <div className={`px-2 py-1 rounded font-bold text-white text-xs flex-shrink-0 ${
-                    attendanceStatuses.find(s => s.key === student.lastAttendance)?.color || 'bg-gray-400'
+                  <div className={`w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold ${
+                    attendanceStatuses.find(s => s.key === student.lastAttendance)?.color
                   }`}>
                     {attendanceStatuses.find(s => s.key === student.lastAttendance)?.code}
                   </div>
@@ -805,199 +1083,371 @@ const BasketballApp = () => {
             ))}
           </div>
 
-          <div className="pt-3 border-t border-slate-200">
-            <div className="grid grid-cols-6 gap-3">
-              {attendanceStatuses.map(status => {
-                const count = students.filter(s => s.lastAttendance === status.key && (selectedTeam === 'all' || s.team === selectedTeam)).length;
-                return (
-                  <div key={status.key} className="text-center">
-                    <div className={`w-8 h-8 rounded-full ${status.color} flex items-center justify-center text-white text-xs font-bold mx-auto mb-1`}>
-                      {count}
-                    </div>
-                    <p className="text-xs font-medium text-slate-700">{status.code}</p>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="text-xs text-slate-500 bg-slate-100 p-2 rounded">
+            <strong>Légende:</strong> P=Présent, A=Absent, AP=Absent Prévenu, B=Blessé, E=Excusé, S=En Stage
           </div>
         </div>
       </div>
     );
   };
 
+  // NOUVEAU COMPOSANT - RENDU DES ENTRAÎNEMENTS
+  const renderTrainings = () => {
+    const upcomingTrainings = trainings.filter(t => t.status === 'upcoming');
+    const pastTrainings = trainings.filter(t => t.status === 'completed').sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-semibold text-slate-800">Gestion des entraînements</h2>
+          {userType === 'coach' && (
+            <button
+              onClick={() => setShowAddTraining(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
+            >
+              <Plus size={16} />
+              Nouvel entraînement
+            </button>
+          )}
+        </div>
+
+        {/* Prochains entraînements */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border border-slate-200">
+          <h3 className="text-lg font-semibold mb-4 text-slate-800 flex items-center gap-2">
+            <Calendar size={20} className="text-blue-600" />
+            Prochains entraînements ({upcomingTrainings.length})
+          </h3>
+          
+          {upcomingTrainings.length === 0 ? (
+            <p className="text-slate-500 italic">Aucun entraînement planifié</p>
+          ) : (
+            <div className="space-y-3">
+              {upcomingTrainings.map(training => (
+                <div key={training.id} className="flex justify-between items-center p-4 border border-slate-200 rounded-lg bg-blue-50/50">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h4 className="font-semibold text-slate-800">{training.theme}</h4>
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        {training.type === 'entrainement' ? 'Entraînement' : training.type}
+                      </span>
+                    </div>
+                    <div className="text-sm text-slate-600 space-y-1">
+                      <p>📅 {new Date(training.date).toLocaleDateString('fr-FR')} à {training.time}</p>
+                      <p>📍 {training.lieu}</p>
+                      {training.description && <p>💭 {training.description}</p>}
+                    </div>
+                  </div>
+                  
+                  {userType === 'coach' && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedTraining(training);
+                          setActiveView('attendance');
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
+                      >
+                        <UserCheck size={14} />
+                        Appel
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingTraining(training);
+                          setShowEditTraining(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-800 p-1"
+                        title="Modifier"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => deleteTraining(training.id)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                        title="Supprimer"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Historique des entraînements passés */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border border-slate-200">
+          <h3 className="text-lg font-semibold mb-4 text-slate-800 flex items-center gap-2">
+            <BarChart3 size={20} className="text-green-600" />
+            Historique des entraînements ({pastTrainings.length})
+          </h3>
+          
+          {pastTrainings.length === 0 ? (
+            <p className="text-slate-500 italic">Aucun entraînement terminé</p>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {pastTrainings.map(training => {
+                const attendance = trainingAttendances.find(ta => ta.trainingId === training.id);
+                const presentCount = attendance ? attendance.attendances.filter(a => a.status === 'present').length : 0;
+                const totalStudents = attendance ? attendance.attendances.length : students.length;
+                
+                return (
+                  <div key={training.id} className="flex justify-between items-center p-4 border border-slate-200 rounded-lg bg-slate-50/50">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h4 className="font-semibold text-slate-800">{training.theme}</h4>
+                        <span className="text-xs bg-slate-100 text-slate-800 px-2 py-1 rounded">Terminé</span>
+                        {attendance && (
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                            {presentCount}/{totalStudents} présents
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-slate-600 space-y-1">
+                        <p>📅 {new Date(training.date).toLocaleDateString('fr-FR')} à {training.time}</p>
+                        <p>📍 {training.lieu}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {attendance && (
+                        <button
+                          onClick={() => {
+                            // Afficher le détail des présences
+                            const attendanceDetails = attendance.attendances.map(a => {
+                              const student = students.find(s => s.id === a.studentId);
+                              const statusInfo = attendanceStatuses.find(st => st.key === a.status);
+                              return `${student?.firstName} ${student?.lastName}: ${statusInfo?.label}`;
+                            }).join('\n');
+                            alert(`Présences du ${new Date(training.date).toLocaleDateString('fr-FR')}:\n\n${attendanceDetails}`);
+                          }}
+                          className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded text-sm"
+                        >
+                          Voir présences
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderMatches = () => {
+    const filteredMatches = matches.filter(match => {
+      const championshipMatch = selectedChampionship === 'all' || match.championship === selectedChampionship;
+      const teamMatch = selectedTeam === 'all' || match.team === selectedTeam;
+      const dateMatch = selectedDate === 'all' || 
+        (selectedDate === 'current' && match.status === 'upcoming') ||
+        (selectedDate === 'past' && match.status === 'completed');
+      
+      return championshipMatch && teamMatch && dateMatch;
+    });
+
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-semibold text-slate-800">Gestion des matchs</h2>
-          <div className="flex gap-2 items-center">
-            <select 
-              value={selectedChampionship} 
-              onChange={(e) => setSelectedChampionship(e.target.value)}
-              className="border border-slate-300 rounded px-3 py-1 bg-white/80 backdrop-blur-sm"
+          {userType === 'coach' && (
+            <button
+              onClick={() => setShowAddMatch(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
             >
-              <option value="all">Tous les championnats</option>
-              <option value="LDV2">Championnat LDV2</option>
-              <option value="LDV3">Championnat LDV3</option>
-            </select>
-            {userType === 'coach' && (
-              <button 
-                onClick={() => setShowAddMatch(true)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
-              >
-                <Plus size={16} />
-                Nouveau match
-              </button>
-            )}
-          </div>
+              <Plus size={16} />
+              Nouveau match
+            </button>
+          )}
+        </div>
+
+        {/* Filtres */}
+        <div className="flex gap-4">
+          <select 
+            value={selectedChampionship} 
+            onChange={(e) => setSelectedChampionship(e.target.value)}
+            className="border border-slate-300 rounded px-3 py-2 bg-white/80 backdrop-blur-sm"
+          >
+            <option value="all">Tous les championnats</option>
+            <option value="LDV2">LDV2</option>
+            <option value="LDV3">LDV3</option>
+            <option value="Cup">Coupe</option>
+          </select>
+          <select 
+            value={selectedTeam} 
+            onChange={(e) => setSelectedTeam(e.target.value)}
+            className="border border-slate-300 rounded px-3 py-2 bg-white/80 backdrop-blur-sm"
+          >
+            <option value="all">Toutes les équipes</option>
+            <option value="2">Équipe 2</option>
+            <option value="3">Équipe 3</option>
+          </select>
+          <select 
+            value={selectedDate} 
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="border border-slate-300 rounded px-3 py-2 bg-white/80 backdrop-blur-sm"
+          >
+            <option value="all">Toutes les périodes</option>
+            <option value="current">À venir</option>
+            <option value="past">Passés</option>
+          </select>
         </div>
 
         <div className="space-y-4">
-          {matches
-            .filter(match => selectedChampionship === 'all' || match.championship === selectedChampionship)
-            .map(match => (
+          {filteredMatches.map(match => (
             <div key={match.id} className={`bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border-2 ${
               match.championship === 'LDV2' 
                 ? 'border-green-300' 
-                : 'border-blue-300'
+                : match.championship === 'LDV3'
+                ? 'border-blue-300'
+                : 'border-purple-300'
             }`}>
               <div className="flex justify-between items-start mb-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-lg text-slate-800">{match.opponent}</h3>
-                    <span className={`text-xs font-bold px-3 py-1 rounded ${
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-xl font-semibold text-slate-800">vs {match.opponent}</h3>
+                    <span className={`px-3 py-1 rounded-full text-sm font-bold text-white ${
                       match.championship === 'LDV2' 
-                        ? 'bg-green-600 text-white' 
-                        : 'bg-blue-600 text-white'
+                        ? 'bg-green-600' 
+                        : match.championship === 'LDV3'
+                        ? 'bg-blue-600'
+                        : 'bg-purple-600'
                     }`}>
                       {match.championship}
                     </span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      match.status === 'upcoming' 
+                        ? 'bg-orange-100 text-orange-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {match.status === 'upcoming' ? 'À venir' : 'Terminé'}
+                    </span>
                   </div>
-                  <p className="text-slate-600">{match.date} à {match.time}</p>
-                  <p className="text-sm text-slate-500">📍 {match.lieu}</p>
-                  <p className="text-sm text-blue-600">{match.selectedPlayers.length}/10 joueurs sélectionnés</p>
+                  <div className="text-slate-600 space-y-1">
+                    <p className="flex items-center gap-2">
+                      <Calendar size={16} />
+                      {new Date(match.date).toLocaleDateString('fr-FR')} à {match.time}
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <Trophy size={16} />
+                      {match.lieu}
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <Users size={16} />
+                      Équipe {match.team}
+                    </p>
+                  </div>
                 </div>
+                
                 {userType === 'coach' && (
-                  <div className="flex gap-2">
-                    <button 
+                  <div className="flex items-center gap-2">
+                    <button
                       onClick={() => {
-                        setEditingMatch({...match});
+                        setEditingMatch(match);
                         setShowEditMatch(true);
                       }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1"
+                      className="text-blue-600 hover:text-blue-800 p-2"
+                      title="Modifier"
                     >
-                      <Edit size={14} />
-                      Modifier
+                      <Edit size={18} />
                     </button>
-                    <button 
-                      onClick={() => {
-                        if (selectedMatch === match.id) {
-                          setSelectedMatch(null);
-                          setSelectedPlayers([]);
-                        } else {
-                          setSelectedMatch(match.id);
-                          setSelectedPlayers([...match.selectedPlayers]);
-                        }
-                      }}
-                      className="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                    <button
+                      onClick={() => deleteMatch(match.id)}
+                      className="text-red-600 hover:text-red-800 p-2"
+                      title="Supprimer"
                     >
-                      {selectedMatch === match.id ? 'Fermer' : 'Sélectionner joueurs'}
+                      <X size={18} />
                     </button>
                   </div>
                 )}
               </div>
 
-              {match.selectedPlayers.length > 0 && (
-                <div className={`mb-4 p-3 border-2 rounded-lg ${
-                  match.championship === 'LDV2' 
-                    ? 'bg-green-50/80 border-green-200' 
-                    : 'bg-blue-50/80 border-blue-200'
-                }`}>
-                  <h4 className={`font-medium mb-2 ${
-                    match.championship === 'LDV2' ? 'text-green-800' : 'text-blue-800'
-                  }`}>
-                    Joueurs sélectionnés pour ce match :
-                  </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {match.selectedPlayers.map(playerId => {
-                      const player = students.find(s => s.id === playerId);
-                      return player ? (
-                        <div key={playerId} className="flex items-center gap-2 text-sm bg-white/60 p-2 rounded">
-                          <div className="w-4 h-4 rounded flex items-center justify-center bg-green-600 text-white text-xs font-bold">
-                            P
-                          </div>
-                          <span className="text-slate-700">{player.firstName} {player.lastName}</span>
-                          <span className="text-xs text-slate-500">(Eq. {player.team})</span>
-                          {player.isCaptain && <span className="text-yellow-600">🏀</span>}
-                        </div>
-                      ) : null;
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {selectedMatch === match.id && userType === 'coach' && (
-                <div className="border-t border-slate-200 pt-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-medium text-slate-800">Sélection des joueurs ({selectedPlayers.length}/10)</h4>
+              {/* Sélection d'équipe pour le match */}
+              {userType === 'coach' && match.status === 'upcoming' && (
+                <div className="border-t pt-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-semibold text-slate-700">Composition d'équipe</h4>
+                    <button
+                      onClick={() => setSelectedMatch(selectedMatch === match.id ? null : match.id)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+                    >
+                      {selectedMatch === match.id ? 'Fermer' : 'Sélectionner joueurs'}
+                    </button>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h5 className="font-medium text-green-700 mb-2">Équipe 2</h5>
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {students.filter(s => s.team === '2').map(student => (
-                          <label key={student.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
-                            <input 
-                              type="checkbox" 
-                              className="rounded" 
-                              checked={selectedPlayers.includes(student.id)}
-                              onChange={() => togglePlayerSelection(student.id)}
-                              disabled={!selectedPlayers.includes(student.id) && selectedPlayers.length >= 10}
-                            />
-                            <span className="text-slate-700">{student.firstName} {student.lastName}</span>
-                            {student.isCaptain && <span className="text-yellow-600">🏀</span>}
-                          </label>
+                  {selectedMatch === match.id && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                        {students
+                          .filter(student => student.team === match.team)
+                          .map(student => (
+                          <div 
+                            key={student.id}
+                            onClick={() => togglePlayerSelection(student.id)}
+                            className={`flex items-center justify-between p-2 border rounded cursor-pointer transition-colors ${
+                              selectedPlayers.includes(student.id)
+                                ? 'border-green-500 bg-green-50'
+                                : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">
+                                {student.firstName} {student.lastName}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {student.position}
+                              </span>
+                            </div>
+                            <div className={`w-4 h-4 rounded border-2 ${
+                              selectedPlayers.includes(student.id)
+                                ? 'border-green-500 bg-green-500'
+                                : 'border-slate-300'
+                            }`}>
+                              {selectedPlayers.includes(student.id) && (
+                                <span className="text-white text-xs flex items-center justify-center">✓</span>
+                              )}
+                            </div>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                    <div>
-                      <h5 className="font-medium text-blue-700 mb-2">Équipe 3</h5>
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {students.filter(s => s.team === '3').map(student => (
-                          <label key={student.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
-                            <input 
-                              type="checkbox" 
-                              className="rounded" 
-                              checked={selectedPlayers.includes(student.id)}
-                              onChange={() => togglePlayerSelection(student.id)}
-                              disabled={!selectedPlayers.includes(student.id) && selectedPlayers.length >= 10}
-                            />
-                            <span className="text-slate-700">{student.firstName} {student.lastName}</span>
-                            {student.isCaptain && <span className="text-yellow-600">🏀</span>}
-                          </label>
-                        ))}
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-600">
+                          {selectedPlayers.length}/10 joueurs sélectionnés
+                        </span>
+                        <button
+                          onClick={() => {
+                            // Sauvegarder la sélection
+                            setMatches(matches.map(m => 
+                              m.id === match.id 
+                                ? { ...m, selectedPlayers: [...selectedPlayers] }
+                                : m
+                            ));
+                            setSelectedMatch(null);
+                            setSelectedPlayers([]);
+                            alert('Sélection sauvegardée !');
+                          }}
+                          disabled={selectedPlayers.length === 0}
+                          className="bg-green-600 hover:bg-green-700 disabled:bg-slate-400 text-white px-4 py-2 rounded transition-colors"
+                        >
+                          Sauvegarder sélection
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedMatch(null);
+                            setSelectedPlayers([]);
+                          }}
+                          className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
+                        >
+                          Annuler
+                        </button>
+                        
                       </div>
                     </div>
-                  </div>
-
-                  <div className="mt-4 flex gap-2">
-                    <button
-                      onClick={() => saveMatchSelection(match.id)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors"
-                    >
-                      Sauvegarder sélection
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedMatch(null);
-                        setSelectedPlayers([]);
-                      }}
-                      className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
-                    >
-                      Annuler
-                    </button>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1023,11 +1473,11 @@ const BasketballApp = () => {
                   <div className="flex items-center gap-2">
                     <div className="w-24 bg-slate-200 rounded-full h-2">
                       <div 
-                        className={`h-2 rounded-full ${attendanceRate > 85 ? 'bg-green-600' : attendanceRate > 70 ? 'bg-orange-500' : 'bg-red-600'}`}
-                        style={{width: `${attendanceRate}%`}}
-                      ></div>
+                        className={`h-2 rounded-full ${attendanceRate > 85 ? 'bg-green-600' : attendanceRate > 70 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                        style={{ width: `${attendanceRate}%` }}
+                      />
                     </div>
-                    <span className="text-sm font-medium w-12 text-slate-600">{attendanceRate}%</span>
+                    <span className="text-xs font-medium text-slate-600 w-8">{attendanceRate}%</span>
                   </div>
                 </div>
               );
@@ -1036,17 +1486,24 @@ const BasketballApp = () => {
         </div>
 
         <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border border-slate-200">
-          <h3 className="font-semibold mb-4 text-slate-800">Capitaines et leadership</h3>
-          <div className="space-y-3">
-            {students.filter(s => s.isCaptain).map(captain => (
-              <div key={captain.id} className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <span className="text-2xl">🏀</span>
-                <div>
-                  <p className="font-medium text-slate-800">{captain.firstName} {captain.lastName}</p>
-                  <p className="text-sm text-slate-600">Capitaine Équipe {captain.team} - {captain.position}</p>
-                </div>
-              </div>
-            ))}
+          <h3 className="font-semibold mb-4 text-slate-800">Statistiques générales</h3>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-3 bg-green-50 rounded">
+              <span className="text-slate-700">Taux de présence moyen</span>
+              <span className="font-semibold text-green-600">82%</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-blue-50 rounded">
+              <span className="text-slate-700">Total d'entraînements</span>
+              <span className="font-semibold text-blue-600">{trainings.filter(t => t.status === 'completed').length}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-orange-50 rounded">
+              <span className="text-slate-700">Matchs joués</span>
+              <span className="font-semibold text-orange-600">{matches.filter(m => m.status === 'completed').length}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-purple-50 rounded">
+              <span className="text-slate-700">Joueurs actifs</span>
+              <span className="font-semibold text-purple-600">{students.length}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1054,110 +1511,72 @@ const BasketballApp = () => {
   );
 
   const renderTeams = () => {
-    const getPlayersByPosition = (team) => {
-      const teamPlayers = students.filter(s => s.team === team);
-      return positions.reduce((acc, position) => {
-        acc[position] = teamPlayers.filter(p => p.position === position);
-        return acc;
-      }, {});
-    };
-
-    const renderTeamSection = (teamNumber, teamColor, borderColor, bgColor) => {
-      const playersByPosition = getPlayersByPosition(teamNumber);
-      const captains = students.filter(s => s.team === teamNumber && s.isCaptain);
+    const renderTeamSection = (teamNumber, bgColor, borderColor, cardBgColor) => {
+      const teamPlayers = students.filter(s => s.team === teamNumber);
       
       return (
-        <div className={`bg-white/80 backdrop-blur-sm rounded-lg shadow-sm border-2 ${borderColor}`}>
-          <div className={`${teamColor} text-white p-4 rounded-t-lg`}>
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-bold">Équipe {teamNumber}</h3>
-                <div className="text-sm opacity-90">
-                  Championnat LDV{teamNumber} • {students.filter(s => s.team === teamNumber).length} joueurs
-                </div>
-              </div>
-              <div className="text-right">
-                {captains.length > 0 && (
-                  <div className="text-sm opacity-90">
-                    <div className="flex items-center gap-1">
-                      <span>🏀</span>
-                      <span>Capitaines: {captains.map(c => c.firstName + ' ' + c.lastName).join(', ')}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+        <div className={`bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-6 border-2 ${borderColor}`}>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className={`text-lg font-semibold text-white px-3 py-1 rounded ${bgColor}`}>
+              Équipe {teamNumber} ({teamPlayers.length} joueurs)
+            </h3>
           </div>
           
-          <div className="p-4 space-y-4">
-            {positions.map(position => {
-              const positionPlayers = playersByPosition[position] || [];
-              if (positionPlayers.length === 0) return null;
-              
-              return (
-                <div key={position} className={`${bgColor} rounded-lg p-3`}>
-                  <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    <span>{position}</span>
-                    <span className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">
-                      {positionPlayers.length}
-                    </span>
-                  </h4>
-                  <div className="space-y-2">
-                    {positionPlayers.map(student => (
-                      <div key={student.id} className="bg-white/60 border border-slate-200 rounded-lg p-3">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h5 className="font-semibold text-slate-800">
-                                {student.firstName} {student.lastName}
-                              </h5>
-                              {student.isCaptain && (
-                                <span className="text-xs bg-yellow-500 text-white px-2 py-1 rounded-full flex items-center gap-1">
-                                  🏀 Capitaine
-                                </span>
-                              )}
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600">
-                              <div>
-                                <span className="font-medium">Né le:</span> {student.birthDate || 'Non renseigné'}
-                              </div>
-                              <div>
-                                <span className="font-medium">Licence:</span> {student.licenseNumber}
-                              </div>
-                            </div>
-                          </div>
-                          {userType === 'coach' && (
-                            <div className="flex gap-1 ml-4">
-                              <button
-                                onClick={() => setEditingPlayer(student)}
-                                className="text-blue-600 hover:text-blue-800 p-1"
-                                title="Modifier"
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button
-                                onClick={() => changePlayerTeam(student.id, teamNumber === '2' ? '3' : '2')}
-                                className={`${teamNumber === '2' ? 'text-indigo-600 hover:text-indigo-800' : 'text-green-600 hover:text-green-800'} p-1 text-xs font-bold`}
-                                title={`Transférer vers Équipe ${teamNumber === '2' ? '3' : '2'}`}
-                              >
-                                →{teamNumber === '2' ? '3' : '2'}
-                              </button>
-                              <button
-                                onClick={() => deleteStudent(student.id)}
-                                className="text-red-600 hover:text-red-800 p-1"
-                                title="Supprimer"
-                              >
-                                <X size={16} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+          <div className="space-y-3">
+            {teamPlayers.map(student => (
+              <div key={student.id} className={`flex justify-between items-center p-3 border rounded ${cardBgColor}`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-bold">
+                    {student.firstName[0]}{student.lastName[0]}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-slate-800">
+                        {student.firstName} {student.lastName}
+                      </span>
+                      {student.isCaptain && <span className="text-yellow-600">🏀</span>}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {student.position} • Licence: {student.licenseNumber}
+                    </div>
                   </div>
                 </div>
-              );
-            })}
+                
+                <div className="flex items-center gap-2">
+                  <div className={`w-5 h-5 rounded flex items-center justify-center text-white text-xs font-bold ${
+                    attendanceStatuses.find(s => s.key === student.lastAttendance)?.color
+                  }`}>
+                    {attendanceStatuses.find(s => s.key === student.lastAttendance)?.code}
+                  </div>
+                  
+                  {userType === 'coach' && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setEditingPlayer(student)}
+                        className="text-blue-600 hover:text-blue-800 p-1"
+                        title="Modifier"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button
+                        onClick={() => changePlayerTeam(student.id, teamNumber === '2' ? '3' : '2')}
+                        className={`${teamNumber === '2' ? 'text-indigo-600 hover:text-indigo-800' : 'text-green-600 hover:text-green-800'} p-1 text-xs font-bold`}
+                        title={`Transférer vers Équipe ${teamNumber === '2' ? '3' : '2'}`}
+                      >
+                        →{teamNumber === '2' ? '3' : '2'}
+                      </button>
+                      <button
+                        onClick={() => deleteStudent(student.id)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                        title="Supprimer"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       );
@@ -1182,160 +1601,6 @@ const BasketballApp = () => {
           {renderTeamSection('2', 'bg-green-600', 'border-green-300', 'bg-green-50/80')}
           {renderTeamSection('3', 'bg-blue-600', 'border-blue-300', 'bg-blue-50/80')}
         </div>
-
-        {/* Modal d'ajout de joueur */}
-        {showAddPlayer && userType === 'coach' && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-              <h3 className="text-lg font-semibold mb-4">Ajouter un nouveau joueur</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Prénom"
-                    value={newPlayer.firstName}
-                    onChange={(e) => setNewPlayer({...newPlayer, firstName: e.target.value})}
-                    className="border border-slate-300 rounded px-3 py-2"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Nom"
-                    value={newPlayer.lastName}
-                    onChange={(e) => setNewPlayer({...newPlayer, lastName: e.target.value})}
-                    className="border border-slate-300 rounded px-3 py-2"
-                  />
-                </div>
-                <input
-                  type="date"
-                  value={newPlayer.birthDate}
-                  onChange={(e) => setNewPlayer({...newPlayer, birthDate: e.target.value})}
-                  className="w-full border border-slate-300 rounded px-3 py-2"
-                />
-                <input
-                  type="text"
-                  placeholder="Numéro de licence"
-                  value={newPlayer.licenseNumber}
-                  onChange={(e) => setNewPlayer({...newPlayer, licenseNumber: e.target.value})}
-                  className="w-full border border-slate-300 rounded px-3 py-2"
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <select
-                    value={newPlayer.position}
-                    onChange={(e) => setNewPlayer({...newPlayer, position: e.target.value})}
-                    className="border border-slate-300 rounded px-3 py-2"
-                  >
-                    {positions.map(pos => (
-                      <option key={pos} value={pos}>{pos}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={newPlayer.team}
-                    onChange={(e) => setNewPlayer({...newPlayer, team: e.target.value})}
-                    className="border border-slate-300 rounded px-3 py-2"
-                  >
-                    <option value="2">Équipe 2</option>
-                    <option value="3">Équipe 3</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-6">
-                <button
-                  onClick={addStudent}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors"
-                >
-                  Ajouter
-                </button>
-                <button
-                  onClick={() => setShowAddPlayer(false)}
-                  className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal d'édition de joueur */}
-        {editingPlayer && userType === 'coach' && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-              <h3 className="text-lg font-semibold mb-4">Modifier le joueur</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Prénom"
-                    value={editingPlayer.firstName}
-                    onChange={(e) => setEditingPlayer({...editingPlayer, firstName: e.target.value})}
-                    className="border border-slate-300 rounded px-3 py-2"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Nom"
-                    value={editingPlayer.lastName}
-                    onChange={(e) => setEditingPlayer({...editingPlayer, lastName: e.target.value})}
-                    className="border border-slate-300 rounded px-3 py-2"
-                  />
-                </div>
-                <input
-                  type="date"
-                  value={editingPlayer.birthDate}
-                  onChange={(e) => setEditingPlayer({...editingPlayer, birthDate: e.target.value})}
-                  className="w-full border border-slate-300 rounded px-3 py-2"
-                />
-                <input
-                  type="text"
-                  placeholder="Numéro de licence"
-                  value={editingPlayer.licenseNumber}
-                  onChange={(e) => setEditingPlayer({...editingPlayer, licenseNumber: e.target.value})}
-                  className="w-full border border-slate-300 rounded px-3 py-2"
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <select
-                    value={editingPlayer.position}
-                    onChange={(e) => setEditingPlayer({...editingPlayer, position: e.target.value})}
-                    className="border border-slate-300 rounded px-3 py-2"
-                  >
-                    {positions.map(pos => (
-                      <option key={pos} value={pos}>{pos}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={editingPlayer.team}
-                    onChange={(e) => setEditingPlayer({...editingPlayer, team: e.target.value})}
-                    className="border border-slate-300 rounded px-3 py-2"
-                  >
-                    <option value="2">Équipe 2</option>
-                    <option value="3">Équipe 3</option>
-                  </select>
-                </div>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={editingPlayer.isCaptain}
-                    onChange={(e) => setEditingPlayer({...editingPlayer, isCaptain: e.target.checked})}
-                  />
-                  <span className="text-sm">🏀 Capitaine de l'équipe</span>
-                </label>
-              </div>
-              <div className="flex gap-2 mt-6">
-                <button
-                  onClick={() => updateStudent(editingPlayer)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors"
-                >
-                  Sauvegarder
-                </button>
-                <button
-                  onClick={() => setEditingPlayer(null)}
-                  className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -1365,6 +1630,7 @@ const BasketballApp = () => {
             ))}
           </div>
         </div>
+        
         <div>
           <h3 className="font-medium text-blue-700 mb-2">Équipe 3 ({students.filter(s => s.team === '3').length} joueurs)</h3>
           <div className="space-y-2">
@@ -1390,92 +1656,11 @@ const BasketballApp = () => {
     </div>
   );
 
-  const renderNavigation = () => (
-    <nav className="bg-white/90 backdrop-blur-sm shadow-sm border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-8">
-            <h1 className="text-xl font-bold text-slate-800">
-              🏀 Basketball Team Manager
-            </h1>
-            <div className="flex space-x-4">
-              <button
-                onClick={() => setActiveView('dashboard')}
-                className={`flex items-center gap-2 px-3 py-2 rounded transition-colors ${
-                  activeView === 'dashboard' ? 'bg-slate-600 text-white' : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                <Trophy size={16} />
-                Tableau de bord
-              </button>
-              <button
-                onClick={() => setActiveView('attendance')}
-                className={`flex items-center gap-2 px-3 py-2 rounded transition-colors ${
-                  activeView === 'attendance' ? 'bg-slate-600 text-white' : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                <UserCheck size={16} />
-                Présences
-              </button>
-              <button
-                onClick={() => setActiveView('matches')}
-                className={`flex items-center gap-2 px-3 py-2 rounded transition-colors ${
-                  activeView === 'matches' ? 'bg-slate-600 text-white' : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                <Calendar size={16} />
-                Matchs
-              </button>
-              <button
-                onClick={() => setActiveView('stats')}
-                className={`flex items-center gap-2 px-3 py-2 rounded transition-colors ${
-                  activeView === 'stats' ? 'bg-slate-600 text-white' : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                <BarChart3 size={16} />
-                Statistiques
-              </button>
-              <button
-                onClick={() => setActiveView('teams')}
-                className={`flex items-center gap-2 px-3 py-2 rounded transition-colors ${
-                  activeView === 'teams' ? 'bg-slate-600 text-white' : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                <Users size={16} />
-                Équipes
-              </button>
-              <button
-                onClick={() => setActiveView('players')}
-                className={`flex items-center gap-2 px-3 py-2 rounded transition-colors ${
-                  activeView === 'players' ? 'bg-slate-600 text-white' : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                <Users size={16} />
-                Joueurs
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <select 
-              value={userType} 
-              onChange={(e) => setUserType(e.target.value)}
-              className="border border-slate-300 rounded px-3 py-1 text-sm bg-white/80 backdrop-blur-sm"
-            >
-              <option value="coach">Vue Coach</option>
-              <option value="player">Vue Joueur</option>
-            </select>
-            <Settings size={20} className="text-slate-600" />
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full border-4 border-blue-500 border-t-transparent h-12 w-12 mx-auto mb-4"></div>
           <p className="text-slate-600">Chargement des données...</p>
         </div>
       </div>
@@ -1483,23 +1668,291 @@ const BasketballApp = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 relative">
-      {/* Filigrane LDV */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-        <div className="text-[15rem] font-bold text-slate-300/30 select-none transform rotate-12">
-          LDV
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100">
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">🏀</span>
+              </div>
+              <h1 className="text-xl font-bold text-slate-800">Basketball Manager</h1>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <select 
+                value={userType} 
+                onChange={(e) => setUserType(e.target.value)}
+                className="border border-slate-300 rounded px-3 py-1 bg-white/80 backdrop-blur-sm text-sm"
+              >
+                <option value="coach">Coach</option>
+                <option value="player">Joueur</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
-      
-      {renderNavigation()}
-      <div className="max-w-7xl mx-auto px-4 py-6 relative z-10">
+
+      {/* Navigation */}
+      <div className="bg-white/60 backdrop-blur-sm border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex gap-1 py-2 overflow-x-auto">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className={`flex items-center gap-2 px-4 py-2 rounded transition-colors whitespace-nowrap ${
+                activeView === 'dashboard'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+              }`}
+            >
+              <Settings size={16} />
+              Tableau de bord
+            </button>
+            <button
+              onClick={() => setActiveView('attendance')}
+              className={`flex items-center gap-2 px-4 py-2 rounded transition-colors whitespace-nowrap ${
+                activeView === 'attendance'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+              }`}
+            >
+              <UserCheck size={16} />
+              Présence
+            </button>
+            <button
+              onClick={() => setActiveView('trainings')}
+              className={`flex items-center gap-2 px-4 py-2 rounded transition-colors whitespace-nowrap ${
+                activeView === 'trainings'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+              }`}
+            >
+              <Calendar size={16} />
+              Entraînements
+            </button>
+            <button
+              onClick={() => setActiveView('matches')}
+              className={`flex items-center gap-2 px-4 py-2 rounded transition-colors whitespace-nowrap ${
+                activeView === 'matches'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+              }`}
+            >
+              <Trophy size={16} />
+              Matchs
+            </button>
+            <button
+              onClick={() => setActiveView('teams')}
+              className={`flex items-center gap-2 px-4 py-2 rounded transition-colors whitespace-nowrap ${
+                activeView === 'teams'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+              }`}
+            >
+              <Users size={16} />
+              Équipes
+            </button>
+            <button
+              onClick={() => setActiveView('players')}
+              className={`flex items-center gap-2 px-4 py-2 rounded transition-colors whitespace-nowrap ${
+                activeView === 'players'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+              }`}
+            >
+              <Users size={16} />
+              Joueurs
+            </button>
+            <button
+              onClick={() => setActiveView('stats')}
+              className={`flex items-center gap-2 px-4 py-2 rounded transition-colors whitespace-nowrap ${
+                activeView === 'stats'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+              }`}
+            >
+              <BarChart3 size={16} />
+              Statistiques
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Contenu principal */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeView === 'dashboard' && renderDashboard()}
         {activeView === 'attendance' && renderAttendance()}
+        {activeView === 'trainings' && renderTrainings()}
         {activeView === 'matches' && renderMatches()}
         {activeView === 'stats' && renderStats()}
         {activeView === 'teams' && renderTeams()}
         {activeView === 'players' && renderPlayers()}
       </div>
+
+      {/* MODALS */}
+
+      {/* Modal d'ajout de joueur */}
+      {showAddPlayer && userType === 'coach' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Ajouter un nouveau joueur</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Prénom"
+                  value={newPlayer.firstName}
+                  onChange={(e) => setNewPlayer({...newPlayer, firstName: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                />
+                <input
+                  type="text"
+                  placeholder="Nom"
+                  value={newPlayer.lastName}
+                  onChange={(e) => setNewPlayer({...newPlayer, lastName: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                />
+              </div>
+              <input
+                type="date"
+                value={newPlayer.birthDate}
+                onChange={(e) => setNewPlayer({...newPlayer, birthDate: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              />
+              <input
+                type="text"
+                placeholder="Numéro de licence"
+                value={newPlayer.licenseNumber}
+                onChange={(e) => setNewPlayer({...newPlayer, licenseNumber: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <select
+                  value={newPlayer.position}
+                  onChange={(e) => setNewPlayer({...newPlayer, position: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                >
+                  {positions.map(pos => (
+                    <option key={pos} value={pos}>{pos}</option>
+                  ))}
+                </select>
+                <select
+                  value={newPlayer.team}
+                  onChange={(e) => setNewPlayer({...newPlayer, team: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                >
+                  <option value="2">Équipe 2</option>
+                  <option value="3">Équipe 3</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={newPlayer.isCaptain}
+                  onChange={(e) => setNewPlayer({...newPlayer, isCaptain: e.target.checked})}
+                />
+                <span className="text-sm">Capitaine</span>
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={addStudent}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors flex-1"
+                >
+                  Ajouter le joueur
+                </button>
+                <button
+                  onClick={() => setShowAddPlayer(false)}
+                  className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de modification de joueur */}
+      {editingPlayer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Modifier le joueur</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Prénom"
+                  value={editingPlayer.firstName}
+                  onChange={(e) => setEditingPlayer({...editingPlayer, firstName: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                />
+                <input
+                  type="text"
+                  placeholder="Nom"
+                  value={editingPlayer.lastName}
+                  onChange={(e) => setEditingPlayer({...editingPlayer, lastName: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                />
+              </div>
+              <input
+                type="date"
+                value={editingPlayer.birthDate}
+                onChange={(e) => setEditingPlayer({...editingPlayer, birthDate: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              />
+              <input
+                type="text"
+                placeholder="Numéro de licence"
+                value={editingPlayer.licenseNumber}
+                onChange={(e) => setEditingPlayer({...editingPlayer, licenseNumber: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <select
+                  value={editingPlayer.position}
+                  onChange={(e) => setEditingPlayer({...editingPlayer, position: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                >
+                  {positions.map(pos => (
+                    <option key={pos} value={pos}>{pos}</option>
+                  ))}
+                </select>
+                <select
+                  value={editingPlayer.team}
+                  onChange={(e) => setEditingPlayer({...editingPlayer, team: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                >
+                  <option value="2">Équipe 2</option>
+                  <option value="3">Équipe 3</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={editingPlayer.isCaptain}
+                  onChange={(e) => setEditingPlayer({...editingPlayer, isCaptain: e.target.checked})}
+                />
+                <span className="text-sm">Capitaine</span>
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => updateStudent(editingPlayer)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors flex-1"
+                >
+                  Sauvegarder
+                </button>
+                <button
+                  onClick={() => setEditingPlayer(null)}
+                  className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal d'ajout de match */}
       {showAddMatch && userType === 'coach' && (
@@ -1543,6 +1996,7 @@ const BasketballApp = () => {
                 >
                   <option value="LDV2">LDV2</option>
                   <option value="LDV3">LDV3</option>
+                  <option value="Cup">Coupe</option>
                 </select>
                 <select
                   value={newMatch.team}
@@ -1553,27 +2007,27 @@ const BasketballApp = () => {
                   <option value="3">Équipe 3</option>
                 </select>
               </div>
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={addMatch}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors"
-              >
-                Ajouter
-              </button>
-              <button
-                onClick={() => setShowAddMatch(false)}
-                className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
-              >
-                Annuler
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={addMatch}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors flex-1"
+                >
+                  Ajouter le match
+                </button>
+                <button
+                  onClick={() => setShowAddMatch(false)}
+                  className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal d'édition de match */}
-      {showEditMatch && editingMatch && userType === 'coach' && (
+      {/* Modal de modification de match */}
+      {showEditMatch && editingMatch && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
             <h3 className="text-lg font-semibold mb-4">Modifier le match</h3>
@@ -1614,6 +2068,7 @@ const BasketballApp = () => {
                 >
                   <option value="LDV2">LDV2</option>
                   <option value="LDV3">LDV3</option>
+                  <option value="Cup">Coupe</option>
                 </select>
                 <select
                   value={editingMatch.team}
@@ -1624,32 +2079,162 @@ const BasketballApp = () => {
                   <option value="3">Équipe 3</option>
                 </select>
               </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => updateMatch(editingMatch)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors flex-1"
+                >
+                  Sauvegarder
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditMatch(false);
+                    setEditingMatch(null);
+                  }}
+                  className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal d'ajout d'entraînement */}
+      {showAddTraining && userType === 'coach' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Planifier un nouvel entraînement</h3>
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Thème de l'entraînement"
+                value={newTraining.theme}
+                onChange={(e) => setNewTraining({...newTraining, theme: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="date"
+                  value={newTraining.date}
+                  onChange={(e) => setNewTraining({...newTraining, date: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                />
+                <input
+                  type="time"
+                  value={newTraining.time}
+                  onChange={(e) => setNewTraining({...newTraining, time: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Lieu"
+                value={newTraining.lieu}
+                onChange={(e) => setNewTraining({...newTraining, lieu: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              />
               <select
-                value={editingMatch.status}
-                onChange={(e) => setEditingMatch({...editingMatch, status: e.target.value})}
+                value={newTraining.team}
+                onChange={(e) => setNewTraining({...newTraining, team: e.target.value})}
                 className="w-full border border-slate-300 rounded px-3 py-2"
               >
-                <option value="upcoming">À venir</option>
-                <option value="completed">Terminé</option>
-                <option value="cancelled">Annulé</option>
+                <option value="all">Toutes les équipes</option>
+                <option value="2">Équipe 2 uniquement</option>
+                <option value="3">Équipe 3 uniquement</option>
               </select>
+              <textarea
+                placeholder="Description (optionnel)"
+                value={newTraining.description}
+                onChange={(e) => setNewTraining({...newTraining, description: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2 h-20"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={addTraining}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors flex-1"
+                >
+                  Planifier l'entraînement
+                </button>
+                <button
+                  onClick={() => setShowAddTraining(false)}
+                  className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => updateMatch(editingMatch)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors"
+          </div>
+        </div>
+      )}
+
+      {/* Modal de modification d'entraînement */}
+      {showEditTraining && editingTraining && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Modifier l'entraînement</h3>
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Thème de l'entraînement"
+                value={editingTraining.theme}
+                onChange={(e) => setEditingTraining({...editingTraining, theme: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="date"
+                  value={editingTraining.date}
+                  onChange={(e) => setEditingTraining({...editingTraining, date: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                />
+                <input
+                  type="time"
+                  value={editingTraining.time}
+                  onChange={(e) => setEditingTraining({...editingTraining, time: e.target.value})}
+                  className="border border-slate-300 rounded px-3 py-2"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Lieu"
+                value={editingTraining.lieu}
+                onChange={(e) => setEditingTraining({...editingTraining, lieu: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
+              />
+              <select
+                value={editingTraining.team}
+                onChange={(e) => setEditingTraining({...editingTraining, team: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2"
               >
-                Sauvegarder
-              </button>
-              <button
-                onClick={() => {
-                  setEditingMatch(null);
-                  setShowEditMatch(false);
-                }}
-                className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
-              >
-                Annuler
-              </button>
+                <option value="all">Toutes les équipes</option>
+                <option value="2">Équipe 2 uniquement</option>
+                <option value="3">Équipe 3 uniquement</option>
+              </select>
+              <textarea
+                placeholder="Description (optionnel)"
+                value={editingTraining.description}
+                onChange={(e) => setEditingTraining({...editingTraining, description: e.target.value})}
+                className="w-full border border-slate-300 rounded px-3 py-2 h-20"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => updateTraining(editingTraining)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors flex-1"
+                >
+                  Sauvegarder
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditTraining(false);
+                    setEditingTraining(null);
+                  }}
+                  className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
             </div>
           </div>
         </div>
